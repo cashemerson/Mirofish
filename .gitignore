@@ -1,0 +1,6 @@
+/MiroFish/.env
+/MiroFish/node_modules/
+/MiroFish/frontend/node_modules/
+/MiroFish/backend/.venv/
+/MiroFish/backend/uploads/
+/MiroFish/.DS_Store
