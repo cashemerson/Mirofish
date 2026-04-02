@@ -63,6 +63,71 @@ ensure_uv() {
   "${py_bin}" -m pip install --user uv
 }
 
+patch_vite_allowed_hosts() {
+  local vite_config="${REPO_DIR}/frontend/vite.config.js"
+  if [ ! -f "${vite_config}" ]; then
+    return
+  fi
+
+  python3 - "${vite_config}" <<'PY'
+import pathlib
+import re
+import sys
+
+cfg_path = pathlib.Path(sys.argv[1])
+text = cfg_path.read_text(encoding="utf-8")
+required_hosts = [
+    ".cursorvm.com",
+    ".agent.cvm.dev",
+    "localhost",
+    "127.0.0.1",
+]
+
+if "server:" not in text:
+    sys.exit(0)
+
+def insert_allowed_hosts_block(src: str) -> str:
+    block = (
+        "    allowedHosts: [\n"
+        "      '.cursorvm.com',\n"
+        "      '.agent.cvm.dev',\n"
+        "      'localhost',\n"
+        "      '127.0.0.1'\n"
+        "    ],\n"
+    )
+
+    if "open: true," in src:
+        return src.replace("open: true,\n", "open: true,\n" + block, 1)
+    if "port: 3000," in src:
+        return src.replace("port: 3000,\n", "port: 3000,\n" + block, 1)
+    if "server: {" in src:
+        return src.replace("server: {\n", "server: {\n" + block, 1)
+    return src
+
+allowed_match = re.search(r"allowedHosts:\s*\[(?P<body>.*?)\]", text, flags=re.S)
+updated = text
+
+if allowed_match:
+    body = allowed_match.group("body")
+    missing = [h for h in required_hosts if f"'{h}'" not in body and f'"{h}"' not in body]
+    if missing:
+        existing_lines = [ln.rstrip() for ln in body.splitlines() if ln.strip()]
+        for host in missing:
+            existing_lines.append(f"      '{host}',")
+        new_body = "\n" + "\n".join(existing_lines) + "\n    "
+        updated = (
+            text[:allowed_match.start("body")]
+            + new_body
+            + text[allowed_match.end("body"):]
+        )
+else:
+    updated = insert_allowed_hosts_block(text)
+
+if updated != text:
+    cfg_path.write_text(updated, encoding="utf-8")
+PY
+}
+
 clone_or_refresh_repo() {
   if [ ! -d "${REPO_DIR}/.git" ]; then
     git clone "${REPO_URL}" "${REPO_DIR}"
@@ -74,6 +139,7 @@ clone_or_refresh_repo() {
 
 prewarm_dependencies() {
   cd "${REPO_DIR}"
+  patch_vite_allowed_hosts
   cp --update=none .env.example .env || true
   export PATH="$HOME/.local/bin:$PATH"
   npm run setup:all
