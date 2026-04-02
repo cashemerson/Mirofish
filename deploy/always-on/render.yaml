@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: mirofish
+    runtime: docker
+    plan: starter
+    dockerContext: .
+    dockerfilePath: ./deploy/always-on/Dockerfile
+    autoDeploy: true
+    healthCheckPath: /api/simulation/history?limit=1
+    envVars:
+      - key: LLM_API_KEY
+        sync: false
+      - key: ZEP_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        value: https://api.openai.com/v1
+      - key: LLM_MODEL_NAME
+        value: gpt-4o-mini
