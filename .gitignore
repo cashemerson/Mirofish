@@ -4,3 +4,7 @@
 /MiroFish/backend/.venv/
 /MiroFish/backend/uploads/
 /MiroFish/.DS_Store
+/deploy/always-on/.tls.env
+/deploy/always-on/.env
+/deploy/always-on/.env.proxy
+/deploy/always-on/Caddyfile

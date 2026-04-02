@@ -57,6 +57,69 @@ docker compose up -d
 
 ---
 
+## Custom domain + HTTPS + Portal Basic Auth (recommended)
+
+This adds:
+- Automatic Let's Encrypt TLS certificates
+- `https://app.your-domain` -> MiroFish frontend
+- `https://portal.your-domain` -> portal launcher protected by Basic Auth
+
+Files:
+- `docker-compose.tls.yml`
+- `Caddyfile.template`
+
+### 1) DNS
+
+Create A records pointing to your server IP:
+- `app.your-domain`
+- `portal.your-domain`
+
+### 2) Prepare environment
+
+In this directory:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env`:
+- Fill `LLM_API_KEY`, `ZEP_API_KEY`
+- Set:
+  - `MIROFISH_DOMAIN=app.your-domain`
+  - `PORTAL_DOMAIN=portal.your-domain`
+  - `ACME_EMAIL=you@example.com`
+  - `PORTAL_BASIC_AUTH_USER=youruser`
+  - `PORTAL_BASIC_AUTH_HASH=...`  (bcrypt hash)
+
+Generate bcrypt hash:
+
+```bash
+docker run --rm caddy:2-alpine caddy hash-password --plaintext "your-strong-password"
+```
+
+Copy the generated hash into `PORTAL_BASIC_AUTH_HASH`.
+
+### 3) Start with TLS overlay
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
+```
+
+### 4) Open
+
+- `https://app.your-domain`
+- `https://app.your-domain/api/simulation/history?limit=1`
+- `https://portal.your-domain` (will prompt for username/password)
+
+### 5) Updates
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.tls.yml pull
+docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
+```
+
+---
+
 ## Option 2: Render (Blueprint)
 
 File:
