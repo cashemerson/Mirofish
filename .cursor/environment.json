@@ -1,0 +1,11 @@
+{
+  "install": "bash .cursor/setup-mirofish-env.sh",
+  "start": "cd /workspace/MiroFish",
+  "persistedDirectories": [
+    "/workspace/MiroFish/node_modules",
+    "/workspace/MiroFish/frontend/node_modules",
+    "/workspace/MiroFish/backend/.venv",
+    "/home/ubuntu/.cache/uv",
+    "/home/ubuntu/.npm"
+  ]
+}
