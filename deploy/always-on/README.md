@@ -31,7 +31,7 @@ Recommended defaults:
 cd deploy/always-on
 cp .env.example .env
 # edit .env and set at least LLM_API_KEY + ZEP_API_KEY
-./scripts/validate-deploy.sh
+./scripts/validate-deploy.sh --mode base
 docker compose up -d
 docker compose ps
 ```
@@ -76,7 +76,7 @@ Use the helper script so bcrypt `$` characters are written correctly:
 ### 4) Validate and start
 
 ```bash
-./scripts/validate-deploy.sh
+./scripts/validate-deploy.sh --mode tls
 ./scripts/render-caddyfile.sh
 docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
 docker compose -f docker-compose.yml -f docker-compose.tls.yml ps
@@ -106,7 +106,7 @@ docker compose -f docker-compose.yml -f docker-compose.tls.yml logs --tail=150 m
 Run preflight and regenerate Caddyfile:
 
 ```bash
-./scripts/validate-deploy.sh
+./scripts/validate-deploy.sh --mode tls
 ./scripts/render-caddyfile.sh
 ```
 

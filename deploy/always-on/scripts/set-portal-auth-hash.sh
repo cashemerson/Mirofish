@@ -10,12 +10,19 @@ if [ ! -f "${ENV_FILE}" ]; then
   exit 1
 fi
 
-if [ "${#}" -lt 1 ]; then
-  echo "Usage: $0 '<portal-password>'" >&2
+if [ "${#}" -ge 1 ] && [ -n "${1:-}" ]; then
+  PASSWORD="${1}"
+else
+  echo "No password argument supplied; prompting securely." >&2
+  read -r -s -p "Portal basic-auth password: " PASSWORD
+  echo
+fi
+
+if [ -z "${PASSWORD}" ]; then
+  echo "Password cannot be empty." >&2
   exit 1
 fi
 
-PASSWORD="${1}"
 HASH="$(docker run --rm caddy:2.8-alpine caddy hash-password --plaintext "${PASSWORD}")"
 
 # Wrap in single quotes so Docker Compose reads "$" literally.
@@ -28,4 +35,4 @@ else
 fi
 
 echo "Wrote PORTAL_BASIC_AUTH_HASH to ${ENV_FILE}."
-echo "Next: run ./scripts/validate-deploy.sh then docker compose up."
+echo "Next: run ./scripts/validate-deploy.sh --mode tls and ./scripts/render-caddyfile.sh."
