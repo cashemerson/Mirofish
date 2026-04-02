@@ -34,6 +34,19 @@ docker compose up -d
 4. Open:
 - Frontend: `http://<your-server>:3000`
 - API: `http://<your-server>:5001`
+- Portal app: `http://<your-server>:8080`
+
+### Portal app (recommended)
+
+The compose stack now includes a small website (`portal/`) that gives you a clean entrypoint for MiroFish from any device.
+
+From the portal you can:
+- Save your MiroFish URL in browser storage
+- Run a backend health check
+- Open MiroFish in one tap
+
+Default portal URL:
+- `http://<your-server>:8080`
 
 To update:
 
