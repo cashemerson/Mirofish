@@ -82,6 +82,8 @@ docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
 docker compose -f docker-compose.yml -f docker-compose.tls.yml ps
 ```
 
+`docker-compose.yml` already injects `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS` from your domain values to prevent Vite host-allowlist 403 errors on custom domains.
+
 ### 5) Verify externally
 
 ```bash

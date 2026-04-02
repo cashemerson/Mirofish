@@ -23,6 +23,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=${MIROFISH_DOMAIN:-localhost},${PORTAL_DOMAIN:-localhost},localhost,127.0.0.1
     ports:
       - "3000:3000"
       - "5001:5001"
