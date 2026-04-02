@@ -1,0 +1,20 @@
+{$APP_DOMAIN} {
+  encode zstd gzip
+  tls {$TLS_EMAIL}
+  reverse_proxy mirofish:3000
+}
+
+{$API_DOMAIN} {
+  encode zstd gzip
+  tls {$TLS_EMAIL}
+  reverse_proxy mirofish:5001
+}
+
+{$PORTAL_DOMAIN} {
+  encode zstd gzip
+  tls {$TLS_EMAIL}
+  basicauth {
+    {$PORTAL_AUTH_USER} {$PORTAL_AUTH_HASH}
+  }
+  reverse_proxy portal:8080
+}
