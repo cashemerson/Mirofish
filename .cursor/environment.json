@@ -1,0 +1,18 @@
+{
+  "install": "bash .cursor/setup-mirofish-env.sh",
+  "start": "bash .cursor/start-mirofish-dev.sh",
+  "terminals": [
+    {
+      "name": "mirofish-dev",
+      "command": "bash .cursor/start-mirofish-dev.sh",
+      "ports": [3000, 5001]
+    }
+  ],
+  "persistedDirectories": [
+    "/workspace/MiroFish/node_modules",
+    "/workspace/MiroFish/frontend/node_modules",
+    "/workspace/MiroFish/backend/.venv",
+    "/home/ubuntu/.cache/uv",
+    "/home/ubuntu/.npm"
+  ]
+}
