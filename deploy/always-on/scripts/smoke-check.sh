@@ -6,6 +6,65 @@ PORTAL_URL="${PORTAL_URL:-https://portal.cesimulation.it.com}"
 API_PATH="${API_PATH:-/api/simulation/history?limit=1}"
 ADMIN_USER="${ADMIN_USER:-admin}"
 
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/smoke-check.sh [--app URL] [--portal URL] [--api URL_OR_PATH] [--user USER]
+
+Examples:
+  ./scripts/smoke-check.sh \
+    --app https://app.example.com \
+    --portal https://portal.example.com \
+    --api /api/simulation/history?limit=1 \
+    --user admin
+
+  ./scripts/smoke-check.sh \
+    --app https://app.example.com \
+    --portal https://portal.example.com \
+    --api https://app.example.com/api/simulation/history?limit=1
+EOF
+}
+
+while [ "${#}" -gt 0 ]; do
+  case "${1}" in
+    --app)
+      shift
+      APP_URL="${1:-}"
+      ;;
+    --portal)
+      shift
+      PORTAL_URL="${1:-}"
+      ;;
+    --api)
+      shift
+      API_PATH="${1:-}"
+      ;;
+    --user)
+      shift
+      ADMIN_USER="${1:-}"
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: ${1}" >&2
+      usage
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+[ -n "${APP_URL}" ] || { echo "APP_URL cannot be empty"; exit 1; }
+[ -n "${PORTAL_URL}" ] || { echo "PORTAL_URL cannot be empty"; exit 1; }
+[ -n "${ADMIN_USER}" ] || { echo "ADMIN_USER cannot be empty"; exit 1; }
+
+if [[ "${API_PATH}" == http://* || "${API_PATH}" == https://* ]]; then
+  API_URL="${API_PATH}"
+else
+  API_URL="${APP_URL}${API_PATH}"
+fi
+
 echo "Running smoke checks..."
 echo "  APP_URL=${APP_URL}"
 echo "  PORTAL_URL=${PORTAL_URL}"
@@ -28,7 +87,7 @@ echo
 echo "== Public endpoint checks =="
 APP_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" "${APP_URL}/")"
 PORTAL_STATUS_NOAUTH="$(curl -sk -o /dev/null -w "%{http_code}" "${PORTAL_URL}/")"
-API_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" "${APP_URL}${API_PATH}")"
+API_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" "${API_URL}")"
 
 echo "App status: ${APP_STATUS} (expected 200/301/302/307/308)"
 echo "Portal status without auth: ${PORTAL_STATUS_NOAUTH} (expected 401)"

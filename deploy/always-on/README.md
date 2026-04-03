@@ -104,6 +104,26 @@ Or run the built-in smoke check (prompts for portal password):
   --user admin
 ```
 
+If your deployment has drifted due to copy/paste issues, run one-command repair:
+
+```bash
+APP_DOMAIN=app.your-domain \
+PORTAL_DOMAIN=portal.your-domain \
+ACME_EMAIL=you@example.com \
+ADMIN_USER=admin \
+./scripts/repair-deploy.sh
+```
+
+This script:
+- validates `.env` contains required keys
+- rewrites `docker-compose.yml` to a known-good config
+- rewrites `portal-nginx.conf` to a known-good config
+- updates Vite allowed hosts for custom domains
+- optionally rotates portal password/hash safely
+- renders a concrete `Caddyfile`
+- validates compose and restarts the stack
+- prints status and endpoint checks
+
 ---
 
 ## Troubleshooting restart loops quickly
