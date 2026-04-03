@@ -1082,7 +1082,7 @@ async function runHealthChecks() {
 
   var checks = [
     { url: API_BASE + '/', label: 'App Frontend', dot: 'dotApp', status: 'statusApp', health: 'healthFrontend' },
-    { url: API_BASE + '/api/simulation/history?limit=1', label: 'API Backend', dot: 'dotApi', status: 'statusApi', health: 'healthBackend' },
+    { url: API_BASE + '/health', label: 'API Backend', dot: 'dotApi', status: 'statusApi', health: 'healthBackend' },
     { url: window.location.origin + '/', label: 'Portal', dot: 'dotPortal', status: 'statusPortal', health: 'healthPortal' },
   ];
 
@@ -1116,7 +1116,7 @@ async function runHealthChecks() {
 async function autoCheck() {
   var endpoints = [
     { url: API_BASE + '/', dot: 'dotApp', status: 'statusApp' },
-    { url: API_BASE + '/api/simulation/history?limit=1', dot: 'dotApi', status: 'statusApi' },
+    { url: API_BASE + '/health', dot: 'dotApi', status: 'statusApi' },
   ];
   for (var i = 0; i < endpoints.length; i++) {
     var ep = endpoints[i];
