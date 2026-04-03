@@ -11,6 +11,7 @@ This folder contains a hardened, repeatable deployment for running MiroFish cont
 - `scripts/render-caddyfile.sh`: renders concrete `Caddyfile` from `.env`
 - `scripts/repair-deploy.sh`: one-command recovery for drifted deployments
 - `scripts/diagnose-network-error.sh`: targeted checks for frontend "Network Error" paths
+- `scripts/bootstrap-server.sh`: full from-scratch server bootstrap (nuke + reclone + configure + start)
 - bilingual portal UI (English/Chinese) with in-page language switch
 
 ## Prerequisites
@@ -154,6 +155,36 @@ The validator catches:
 - missing required env keys
 - Caddyfile template rendering issues
 - broken Compose syntax
+
+---
+
+## Emergency recovery (broken repo / empty scripts)
+
+If git commands fail with "not a git repository" or `scripts/` is empty, the deploy directory is corrupted. Use the bootstrap script to nuke and rebuild:
+
+```bash
+export LLM_API_KEY="sk-your-openai-key"
+export ZEP_API_KEY="your-zep-key"
+export ACME_EMAIL="your-email@example.com"
+bash <(curl -fsSL https://raw.githubusercontent.com/cashemerson/Mirofish/cursor/mirofish-deployment-recovery-2ae4/deploy/always-on/scripts/bootstrap-server.sh)
+```
+
+Or manually:
+
+```bash
+cd /root
+rm -rf /root/mirofish-deploy
+git clone --branch cursor/mirofish-deployment-recovery-2ae4 --single-branch --depth 1 https://github.com/cashemerson/Mirofish.git /root/mirofish-deploy
+cd /root/mirofish-deploy/deploy/always-on
+chmod +x scripts/*.sh
+cp .env.example .env
+# edit .env with your real API keys and domains
+bash scripts/validate-deploy.sh --mode tls
+bash scripts/render-caddyfile.sh
+docker compose -f docker-compose.yml -f docker-compose.tls.yml pull
+docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d --force-recreate
+docker compose -f docker-compose.yml -f docker-compose.tls.yml ps
+```
 
 ---
 
