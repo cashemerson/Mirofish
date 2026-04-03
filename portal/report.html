@@ -14,7 +14,7 @@
       --radius: 12px; --mono: 'JetBrains Mono', 'Fira Code', monospace;
       --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
     body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.65; }
     .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
 
@@ -48,7 +48,8 @@
       color: var(--green); margin-bottom: 8px; overflow-x: auto;
     }
 
-    .report table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    .report .table-scroll { overflow-x: auto; margin: 12px 0 20px; }
+    .report table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .report th { text-align: left; padding: 10px 14px; background: var(--card); border: 1px solid var(--border); font-weight: 600; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
     .report td { padding: 10px 14px; border: 1px solid var(--border); color: var(--text); }
     .report tr:hover td { background: rgba(88,166,255,.04); }
@@ -199,7 +200,7 @@
 
     <h2 id="s7">7) MLB Modern History and Updated Baselines</h2>
     <h3>2025 MLB League Averages (per team game)</h3>
-    <table>
+    <div class="table-scroll"><table>
       <thead><tr><th>Metric</th><th>Value</th><th>Metric</th><th>Value</th></tr></thead>
       <tbody>
         <tr><td>Runs/Game</td><td>4.45</td><td>HR/Game</td><td>1.16</td></tr>
@@ -208,16 +209,16 @@
         <tr><td>SLG</td><td>.404</td><td>SB/Game</td><td>0.71</td></tr>
         <tr><td>OPS</td><td>.719</td><td></td><td></td></tr>
       </tbody>
-    </table>
+    </table></div>
     <h3>2025 Pitching Baseline</h3>
-    <table>
+    <div class="table-scroll"><table>
       <thead><tr><th>Metric</th><th>Value</th><th>Metric</th><th>Value</th></tr></thead>
       <tbody>
         <tr><td>ERA</td><td>4.16</td><td>K/9</td><td>8.5</td></tr>
         <tr><td>FIP</td><td>4.16</td><td>BB/9</td><td>3.2</td></tr>
         <tr><td>WHIP</td><td>1.289</td><td>HR/9</td><td>1.2</td></tr>
       </tbody>
-    </table>
+    </table></div>
 
     <h2 id="s8">8) What High-Stakes Officials Consider</h2>
     <ul>

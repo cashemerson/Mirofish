@@ -21,9 +21,12 @@ __APP_HOSTS__ {
 
   reverse_proxy mirofish:3000 {
     header_up Host localhost
+    flush_interval -1
     transport http {
       dial_timeout 10s
       response_header_timeout 120s
+      read_timeout 120s
+      write_timeout 120s
     }
   }
 }

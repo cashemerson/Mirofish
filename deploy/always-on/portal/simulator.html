@@ -273,176 +273,199 @@
 </footer>
 
 <script>
-const API = window.location.hostname === 'portal.cesimulation.it.com'
-  ? 'https://cesimulation.it.com' : (window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://cesimulation.it.com');
+var API = (function() {
+  var h = window.location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:5001';
+  if (h === 'portal.cesimulation.it.com') return 'https://cesimulation.it.com';
+  if (h.endsWith('.cesimulation.it.com') || h === 'cesimulation.it.com') return 'https://cesimulation.it.com';
+  return window.location.origin;
+})();
 
-let wState = { projectId: null, graphId: null, simId: null, reportId: null };
-let wFiles = [];
-
-// Wizard steps
-function showStep(n) {
-  document.querySelectorAll('.wstep').forEach((s, i) => { s.classList.toggle('active', i === n); });
-  document.querySelectorAll('.wpanel').forEach((p, i) => { p.classList.toggle('active', i === n); });
+function esc(s) { if (s == null) return ''; var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+function timedFetch(url, opts, ms) {
+  ms = ms || 15000;
+  var ctrl = new AbortController();
+  var timer = setTimeout(function() { ctrl.abort(); }, ms);
+  return fetch(url, Object.assign({}, opts, { signal: ctrl.signal })).finally(function() { clearTimeout(timer); });
 }
 
-// File handling
-const dz = document.getElementById('dropZone');
-const fi = document.getElementById('fInput');
-dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = 'var(--accent)'; });
-dz.addEventListener('dragleave', () => { dz.style.borderColor = 'var(--border-a)'; });
-dz.addEventListener('drop', e => { e.preventDefault(); dz.style.borderColor = 'var(--border-a)'; pickFiles(e.dataTransfer.files); });
-fi.addEventListener('change', e => pickFiles(e.target.files));
+var wState = { projectId: null, graphId: null, simId: null, reportId: null };
+var wFiles = [];
+var pollAbort = null;
+
+function showStep(n) {
+  document.querySelectorAll('.wstep').forEach(function(s, i) { s.classList.toggle('active', i === n); });
+  document.querySelectorAll('.wpanel').forEach(function(p, i) { p.classList.toggle('active', i === n); });
+}
+
+// File handling with XSS-safe names
+var dz = document.getElementById('dropZone');
+var fi = document.getElementById('fInput');
+dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.style.borderColor = 'var(--accent)'; });
+dz.addEventListener('dragleave', function() { dz.style.borderColor = 'var(--border-a)'; });
+dz.addEventListener('drop', function(e) { e.preventDefault(); dz.style.borderColor = 'var(--border-a)'; pickFiles(e.dataTransfer.files); });
+fi.addEventListener('change', function(e) { pickFiles(e.target.files); });
 function pickFiles(files) {
   wFiles = Array.from(files);
-  document.getElementById('fileListW').innerHTML = wFiles.length ?
-    '<strong>Files:</strong> ' + wFiles.map(f => f.name).join(', ') : '';
+  var el = document.getElementById('fileListW');
+  el.innerHTML = wFiles.length ? '<strong>Files:</strong> ' + wFiles.map(function(f) { return esc(f.name); }).join(', ') : '';
 }
 
-// Generate ontology
 async function wizardGenerate() {
-  const req = document.getElementById('wReq').value.trim();
-  if (!req) return alert('Enter a simulation requirement.');
-  if (!wFiles.length) return alert('Select at least one file.');
-  const btn = document.getElementById('wGenBtn');
+  var req = document.getElementById('wReq').value.trim();
+  var resultEl = document.getElementById('wGenResult');
+  if (!req) { resultEl.innerHTML = '<div class="result-box"><span class="o">Enter a simulation requirement.</span></div>'; return; }
+  if (!wFiles.length) { resultEl.innerHTML = '<div class="result-box"><span class="o">Select at least one file.</span></div>'; return; }
+  var btn = document.getElementById('wGenBtn');
   btn.disabled = true; btn.textContent = 'Generating...';
-  const fd = new FormData();
-  wFiles.forEach(f => fd.append('files', f));
+  resultEl.innerHTML = '';
+  var fd = new FormData();
+  wFiles.forEach(function(f) { fd.append('files', f); });
   fd.append('simulation_requirement', req);
-  const name = document.getElementById('wName').value.trim();
+  var name = document.getElementById('wName').value.trim();
   if (name) fd.append('project_name', name);
-  const ctx = document.getElementById('wCtx').value.trim();
+  var ctx = document.getElementById('wCtx').value.trim();
   if (ctx) fd.append('additional_context', ctx);
   try {
-    const res = await fetch(API + '/api/graph/ontology/generate', { method: 'POST', body: fd });
-    const data = await res.json();
-    wState.projectId = data.project_id || null;
-    document.getElementById('ontologyView').innerHTML = '<span class="g">Ontology generated successfully.</span>\n\n' + JSON.stringify(data, null, 2);
-    document.querySelectorAll('.wstep')[0].classList.add('done');
-    showStep(1);
+    var res = await timedFetch(API + '/api/graph/ontology/generate', { method: 'POST', body: fd }, 300000);
+    if (!res.ok) {
+      var errMsg = 'HTTP ' + res.status;
+      try { var ed = await res.json(); errMsg = ed.error || errMsg; } catch(_) {}
+      document.getElementById('ontologyView').textContent = 'Error: ' + errMsg;
+      resultEl.innerHTML = '<div class="result-box"><span class="r">API error: ' + esc(errMsg) + '</span></div>';
+      btn.disabled = false; btn.textContent = 'Generate Ontology \u2192';
+      return;
+    }
+    var data = await res.json();
+    if (data.success === false) {
+      document.getElementById('ontologyView').textContent = 'Error: ' + (data.error || 'Unknown');
+      resultEl.innerHTML = '<div class="result-box"><span class="r">' + esc(data.error || 'Generation failed') + '</span></div>';
+    } else {
+      wState.projectId = data.project_id || null;
+      document.getElementById('ontologyView').textContent = JSON.stringify(data, null, 2);
+      document.querySelectorAll('.wstep')[0].classList.add('done');
+      showStep(1);
+    }
   } catch (err) {
-    document.getElementById('wGenResult').innerHTML = '<div class="result-box"><span class="r">Error: ' + err.message + '</span></div>';
+    var msg = err.name === 'AbortError' ? 'Request timed out (5 min)' : err.message;
+    resultEl.innerHTML = '<div class="result-box"><span class="r">Error: ' + esc(msg) + '</span></div>';
   }
   btn.disabled = false; btn.textContent = 'Generate Ontology \u2192';
 }
 
-// Build graph
 async function wizardBuildGraph() {
-  if (!wState.projectId) return alert('Generate ontology first.');
-  const btn = document.getElementById('wBuildBtn');
+  if (!wState.projectId) { document.getElementById('graphView').textContent = 'Generate ontology first.'; return; }
+  var btn = document.getElementById('wBuildBtn');
   btn.disabled = true; btn.textContent = 'Building...';
-  const gv = document.getElementById('graphView');
-  gv.innerHTML = '<span class="b">Starting graph build...</span>';
+  var gv = document.getElementById('graphView');
+  gv.textContent = 'Starting graph build...';
   try {
-    const res = await fetch(API + '/api/graph/build', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ project_id: wState.projectId })
-    });
-    const data = await res.json();
+    var res = await timedFetch(API + '/api/graph/build', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: wState.projectId }) }, 30000);
+    if (!res.ok) { gv.textContent = 'API error: HTTP ' + res.status; btn.disabled = false; btn.textContent = 'Build Knowledge Graph \u2192'; return; }
+    var data = await res.json();
     wState.graphId = data.graph_id || null;
-    gv.innerHTML = '<span class="g">Graph build initiated.</span>\n\n' + JSON.stringify(data, null, 2);
-    if (data.task_id) {
-      gv.innerHTML += '\n\n<span class="b">Polling task status...</span>';
-      pollTask(data.task_id, gv);
-    }
+    gv.textContent = 'Graph build initiated.\n\n' + JSON.stringify(data, null, 2);
+    if (data.task_id) { pollTask(data.task_id, gv); }
     document.querySelectorAll('.wstep')[1].classList.add('done');
     showStep(2);
-  } catch (err) { gv.innerHTML = '<span class="r">Error: ' + err.message + '</span>'; }
+  } catch (err) { gv.textContent = 'Error: ' + (err.name === 'AbortError' ? 'timeout' : err.message); }
   btn.disabled = false; btn.textContent = 'Build Knowledge Graph \u2192';
 }
 
 async function pollTask(taskId, el) {
-  for (let i = 0; i < 60; i++) {
-    await new Promise(r => setTimeout(r, 5000));
+  for (var i = 0; i < 60; i++) {
+    await new Promise(function(r) { setTimeout(r, 5000); });
     try {
-      const res = await fetch(API + '/api/graph/task/' + taskId);
-      const data = await res.json();
-      el.innerHTML += '\n<span class="d">[' + new Date().toLocaleTimeString() + ']</span> Status: <span class="b">' + (data.status || 'unknown') + '</span>';
+      var res = await timedFetch(API + '/api/graph/task/' + taskId);
+      if (!res.ok) continue;
+      var data = await res.json();
+      el.textContent += '\n[' + new Date().toLocaleTimeString() + '] Status: ' + (data.status || 'unknown');
       if (data.status === 'completed' || data.status === 'done') {
         wState.graphId = data.graph_id || wState.graphId;
-        el.innerHTML += '\n<span class="g">Graph build complete!</span>';
+        el.textContent += '\nGraph build complete!';
         document.querySelectorAll('.wstep')[2].classList.add('done');
         return;
       }
       if (data.status === 'failed' || data.status === 'error') {
-        el.innerHTML += '\n<span class="r">Build failed: ' + (data.error || '') + '</span>';
+        el.textContent += '\nBuild failed: ' + (data.error || '');
         return;
       }
-    } catch (err) { el.innerHTML += '\n<span class="o">Poll error: ' + err.message + '</span>'; }
+    } catch (err) { el.textContent += '\nPoll error: ' + err.message; }
   }
 }
 
-// Create & start simulation
 async function wizardCreateSim() {
-  if (!wState.projectId) return alert('Build graph first.');
-  const sv = document.getElementById('simView');
-  sv.innerHTML = '<span class="b">Creating simulation...</span>';
+  if (!wState.projectId) { document.getElementById('simView').textContent = 'Build graph first.'; return; }
+  var sv = document.getElementById('simView');
+  sv.textContent = 'Creating simulation...';
   try {
-    const res = await fetch(API + '/api/simulation/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ project_id: wState.projectId, graph_id: wState.graphId })
-    });
-    const data = await res.json();
+    var body = { project_id: wState.projectId };
+    if (wState.graphId) body.graph_id = wState.graphId;
+    var platform = document.getElementById('wPlatform').value;
+    if (platform === 'twitter') { body.enable_twitter = true; body.enable_reddit = false; }
+    else if (platform === 'reddit') { body.enable_twitter = false; body.enable_reddit = true; }
+    else { body.enable_twitter = true; body.enable_reddit = true; }
+    var res = await timedFetch(API + '/api/simulation/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 30000);
+    if (!res.ok) { sv.textContent = 'API error: HTTP ' + res.status; return; }
+    var data = await res.json();
     wState.simId = data.simulation_id || null;
-    sv.innerHTML = '<span class="g">Simulation created.</span>\n' + JSON.stringify(data, null, 2);
+    sv.textContent = 'Simulation created.\n' + JSON.stringify(data, null, 2);
     document.querySelectorAll('.wstep')[2].classList.add('done');
     showStep(3);
-  } catch (err) { sv.innerHTML = '<span class="r">Error: ' + err.message + '</span>'; }
+  } catch (err) { sv.textContent = 'Error: ' + (err.name === 'AbortError' ? 'timeout' : err.message); }
 }
 
 async function wizardStartSim() {
-  if (!wState.simId) return alert('Create simulation first.');
-  const sv = document.getElementById('simView');
-  const rounds = parseInt(document.getElementById('wRounds').value) || 10;
-  document.getElementById('wStartBtn').style.display = 'none';
-  document.getElementById('wStopBtn').style.display = 'inline-flex';
-  sv.innerHTML = '<span class="g">Starting simulation (' + rounds + ' rounds)...</span>';
+  if (!wState.simId) { document.getElementById('simView').textContent = 'Create simulation first.'; return; }
+  var sv = document.getElementById('simView');
+  var rounds = parseInt(document.getElementById('wRounds').value) || 10;
+  sv.textContent = 'Starting simulation (' + rounds + ' rounds)...';
   try {
-    const res = await fetch(API + '/api/simulation/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ simulation_id: wState.simId, max_rounds: rounds })
-    });
-    const data = await res.json();
-    sv.innerHTML += '\n' + JSON.stringify(data, null, 2);
+    var res = await timedFetch(API + '/api/simulation/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId, max_rounds: rounds }) }, 30000);
+    if (!res.ok) { sv.textContent += '\nAPI error: HTTP ' + res.status; return; }
+    var data = await res.json();
+    sv.textContent += '\n' + JSON.stringify(data, null, 2);
+    document.getElementById('wStartBtn').style.display = 'none';
+    document.getElementById('wStopBtn').style.display = 'inline-flex';
     pollSimStatus();
-  } catch (err) { sv.innerHTML += '\n<span class="r">Error: ' + err.message + '</span>'; }
+  } catch (err) {
+    sv.textContent += '\nError: ' + (err.name === 'AbortError' ? 'timeout' : err.message);
+    document.getElementById('wStartBtn').style.display = 'inline-flex';
+    document.getElementById('wStopBtn').style.display = 'none';
+  }
 }
 
 async function pollSimStatus() {
-  const sv = document.getElementById('simView');
-  for (let i = 0; i < 120; i++) {
-    await new Promise(r => setTimeout(r, 5000));
+  var sv = document.getElementById('simView');
+  for (var i = 0; i < 120; i++) {
+    await new Promise(function(r) { setTimeout(r, 5000); });
     try {
-      const res = await fetch(API + '/api/simulation/' + wState.simId + '/run-status');
-      const data = await res.json();
-      sv.innerHTML += '\n<span class="d">[' + new Date().toLocaleTimeString() + ']</span> ' + (data.status || 'polling...');
+      var res = await timedFetch(API + '/api/simulation/' + wState.simId + '/run-status');
+      if (!res.ok) { sv.textContent += '\n[' + new Date().toLocaleTimeString() + '] Poll: HTTP ' + res.status; continue; }
+      var data = await res.json();
+      sv.textContent += '\n[' + new Date().toLocaleTimeString() + '] ' + esc(data.status || 'polling...');
       if (data.status === 'completed' || data.status === 'done') {
-        sv.innerHTML += '\n<span class="g">Simulation complete!</span>';
+        sv.textContent += '\nSimulation complete!';
         document.getElementById('wStopBtn').style.display = 'none';
         document.getElementById('wReportBtn').style.display = 'inline-flex';
         document.querySelectorAll('.wstep')[3].classList.add('done');
         return;
       }
       if (data.status === 'failed' || data.status === 'stopped') {
-        sv.innerHTML += '\n<span class="r">Simulation ended: ' + data.status + '</span>';
+        sv.textContent += '\nSimulation ended: ' + data.status;
         document.getElementById('wStopBtn').style.display = 'none';
+        document.getElementById('wStartBtn').style.display = 'inline-flex';
         return;
       }
-    } catch (err) { sv.innerHTML += '\n<span class="o">' + err.message + '</span>'; }
+    } catch (err) { sv.textContent += '\n' + err.message; }
   }
 }
 
 async function wizardStopSim() {
   try {
-    await fetch(API + '/api/simulation/stop', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ simulation_id: wState.simId })
-    });
-    document.getElementById('simView').innerHTML += '\n<span class="o">Stop requested.</span>';
-  } catch (err) { document.getElementById('simView').innerHTML += '\n<span class="r">' + err.message + '</span>'; }
+    await timedFetch(API + '/api/simulation/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId }) });
+    document.getElementById('simView').textContent += '\nStop requested.';
+  } catch (err) { document.getElementById('simView').textContent += '\n' + err.message; }
   document.getElementById('wStopBtn').style.display = 'none';
   document.getElementById('wStartBtn').style.display = 'inline-flex';
 }
@@ -450,37 +473,35 @@ async function wizardStopSim() {
 async function wizardGenReport() {
   if (!wState.simId) return;
   showStep(4);
-  const rv = document.getElementById('reportView');
-  rv.innerHTML = '<span class="b">Generating report...</span>';
+  var rv = document.getElementById('reportView');
+  rv.textContent = 'Generating report...';
   try {
-    const res = await fetch(API + '/api/report/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ simulation_id: wState.simId })
-    });
-    const data = await res.json();
+    var res = await timedFetch(API + '/api/report/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId }) }, 30000);
+    if (!res.ok) { rv.textContent = 'API error: HTTP ' + res.status; return; }
+    var data = await res.json();
     wState.reportId = data.report_id || null;
-    rv.innerHTML = '<span class="g">Report generation started.</span>\n' + JSON.stringify(data, null, 2);
+    rv.textContent = 'Report generation started.\n' + JSON.stringify(data, null, 2);
     if (data.report_id || data.task_id) pollReportStatus(data.report_id || data.task_id);
-  } catch (err) { rv.innerHTML = '<span class="r">Error: ' + err.message + '</span>'; }
+  } catch (err) { rv.textContent = 'Error: ' + err.message; }
 }
 
 async function pollReportStatus(id) {
-  const rv = document.getElementById('reportView');
-  for (let i = 0; i < 60; i++) {
-    await new Promise(r => setTimeout(r, 5000));
+  var rv = document.getElementById('reportView');
+  for (var i = 0; i < 60; i++) {
+    await new Promise(function(r) { setTimeout(r, 5000); });
     try {
-      const res = await fetch(API + '/api/report/' + id);
-      const data = await res.json();
+      var res = await timedFetch(API + '/api/report/' + encodeURIComponent(id));
+      if (!res.ok) { rv.textContent += '\n[' + new Date().toLocaleTimeString() + '] HTTP ' + res.status; continue; }
+      var data = await res.json();
       if (data.content || data.sections) {
-        rv.innerHTML = '<span class="g">Report ready!</span>\n\n' + (data.content || JSON.stringify(data.sections, null, 2));
+        rv.textContent = 'Report ready!\n\n' + (data.content || JSON.stringify(data.sections, null, 2));
         document.getElementById('wDownloadBtn').style.display = 'inline-flex';
-        document.getElementById('wDownloadBtn').onclick = () => window.open(API + '/api/report/' + id + '/download', '_blank');
+        document.getElementById('wDownloadBtn').onclick = function() { window.open(API + '/api/report/' + encodeURIComponent(id) + '/download', '_blank'); };
         document.querySelectorAll('.wstep')[4].classList.add('done');
         return;
       }
-      rv.innerHTML += '\n<span class="d">[' + new Date().toLocaleTimeString() + ']</span> generating...';
-    } catch (err) { rv.innerHTML += '\n<span class="o">' + err.message + '</span>'; }
+      rv.textContent += '\n[' + new Date().toLocaleTimeString() + '] generating...';
+    } catch (err) { rv.textContent += '\n' + err.message; }
   }
 }
 
@@ -489,57 +510,65 @@ function americanToDecimal(a) { return a > 0 ? (a / 100) + 1 : (100 / Math.abs(a
 function americanToImplied(a) { return a > 0 ? 100 / (a + 100) : Math.abs(a) / (Math.abs(a) + 100); }
 
 function calcEV() {
-  const odds = parseInt(document.getElementById('odds').value);
-  const mp = parseFloat(document.getElementById('modelProb').value) / 100;
-  const fee = parseFloat(document.getElementById('feeCost').value) / 100;
-  if (isNaN(odds) || odds === 0 || isNaN(mp)) return;
+  var odds = parseInt(document.getElementById('odds').value);
+  var mp = parseFloat(document.getElementById('modelProb').value) / 100;
+  var fee = parseFloat(document.getElementById('feeCost').value || '0') / 100;
+  if (isNaN(odds) || odds === 0 || isNaN(mp) || mp <= 0 || mp >= 1) {
+    document.getElementById('evDetail').textContent = 'Enter valid odds (non-zero) and model probability (1-99%).';
+    return;
+  }
+  if (isNaN(fee)) fee = 0;
 
-  const dec = americanToDecimal(odds);
-  const imp = americanToImplied(odds);
-  const ev = mp * (dec - 1) - (1 - mp) - fee;
-  const edge = mp - imp;
-  const kelly = edge > 0 ? (mp * (dec - 1) - (1 - mp)) / (dec - 1) : 0;
-  const halfKelly = kelly / 2;
+  var dec = americanToDecimal(odds);
+  var imp = americanToImplied(odds);
+  var ev = mp * (dec - 1) - (1 - mp) - fee;
+  var edge = mp - imp;
+  var kelly = edge > 0 ? (mp * (dec - 1) - (1 - mp)) / (dec - 1) : 0;
+  var halfKelly = kelly / 2;
+  var quarterKelly = kelly / 4;
 
   document.getElementById('rImplied').textContent = (imp * 100).toFixed(1) + '%';
   document.getElementById('rDecimal').textContent = dec.toFixed(3);
 
-  const evEl = document.getElementById('rEV');
+  var evEl = document.getElementById('rEV');
   evEl.textContent = (ev >= 0 ? '+' : '') + ev.toFixed(3);
   evEl.style.color = ev >= 0 ? 'var(--green)' : 'var(--red)';
 
-  const edgeEl = document.getElementById('rEdge');
+  var edgeEl = document.getElementById('rEdge');
   edgeEl.textContent = (edge >= 0 ? '+' : '') + (edge * 100).toFixed(1) + '%';
   edgeEl.style.color = edge >= 0 ? 'var(--green)' : 'var(--red)';
 
   document.getElementById('rKelly').textContent = kelly > 0 ? (kelly * 100).toFixed(1) + '%' : '0%';
   document.getElementById('rHalfKelly').textContent = halfKelly > 0 ? (halfKelly * 100).toFixed(1) + '%' : '0%';
 
-  const det = document.getElementById('evDetail');
-  det.innerHTML =
-    '<span class="b">Input:</span> ' + odds + ' American | Model: ' + (mp*100).toFixed(1) + '% | Fee: ' + (fee*100).toFixed(1) + '%\n' +
-    '<span class="b">Decimal:</span> ' + dec.toFixed(3) + '\n' +
-    '<span class="b">Implied:</span> ' + (imp*100).toFixed(2) + '% (raw, before vig removal)\n' +
-    '<span class="b">Model prob:</span> ' + (mp*100).toFixed(1) + '%\n' +
-    '<span class="b">Edge:</span> ' + (edge >= 0 ? '+' : '') + (edge*100).toFixed(2) + ' percentage points\n' +
-    '<span class="b">EV per $1:</span> ' + (ev >= 0 ? '<span class="g">+' : '<span class="r">') + ev.toFixed(4) + '</span>' +
-    (fee > 0 ? ' (after ' + (fee*100).toFixed(1) + '% fee)' : '') + '\n' +
-    '<span class="b">Full Kelly:</span> ' + (kelly*100).toFixed(2) + '% of bankroll\n' +
-    '<span class="b">Half Kelly (recommended):</span> ' + (halfKelly*100).toFixed(2) + '% of bankroll\n' +
-    '\n' + (ev > 0 ? '<span class="g">&#x2713; POSITIVE EV — edge exists after costs</span>' : '<span class="r">&#x2717; NEGATIVE EV — no edge, pass</span>');
+  var lines = [
+    'Input: ' + odds + ' American | Model: ' + (mp*100).toFixed(1) + '% | Fee: ' + (fee*100).toFixed(1) + '%',
+    'Decimal: ' + dec.toFixed(3),
+    'Implied: ' + (imp*100).toFixed(2) + '% (raw, before vig removal)',
+    'Model prob: ' + (mp*100).toFixed(1) + '%',
+    'Edge: ' + (edge >= 0 ? '+' : '') + (edge*100).toFixed(2) + ' percentage points',
+    'EV per $1: ' + (ev >= 0 ? '+' : '') + ev.toFixed(4) + (fee > 0 ? ' (after ' + (fee*100).toFixed(1) + '% fee)' : ''),
+    'Full Kelly: ' + (kelly*100).toFixed(2) + '% of bankroll',
+    'Half Kelly: ' + (halfKelly*100).toFixed(2) + '%',
+    'Quarter Kelly: ' + (quarterKelly*100).toFixed(2) + '%',
+    '',
+    ev > 0 ? '\u2713 POSITIVE EV \u2014 edge exists after costs' : '\u2717 NEGATIVE EV \u2014 no edge, pass'
+  ];
+  document.getElementById('evDetail').textContent = lines.join('\n');
 }
 
 function calcVig() {
-  const a = parseInt(document.getElementById('vigA').value);
-  const b = parseInt(document.getElementById('vigB').value);
+  var a = parseInt(document.getElementById('vigA').value);
+  var b = parseInt(document.getElementById('vigB').value);
   if (isNaN(a) || a === 0 || isNaN(b) || b === 0) return;
 
-  const pA = americanToImplied(a);
-  const pB = americanToImplied(b);
-  const total = pA + pB;
-  const fairA = pA / total;
-  const fairB = pB / total;
-  const vig = total - 1;
+  var pA = americanToImplied(a);
+  var pB = americanToImplied(b);
+  var total = pA + pB;
+  if (total <= 0) return;
+  var fairA = pA / total;
+  var fairB = pB / total;
+  var vig = total - 1;
 
   document.getElementById('fairA').textContent = (fairA * 100).toFixed(1) + '%';
   document.getElementById('fairB').textContent = (fairB * 100).toFixed(1) + '%';

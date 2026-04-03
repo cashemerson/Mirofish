@@ -140,6 +140,9 @@ services:
       - .env
     environment:
       - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=\${MIROFISH_DOMAIN:-localhost},\${PORTAL_DOMAIN:-localhost},localhost,127.0.0.1
+    ports:
+      - "3000:3000"
+      - "5001:5001"
     volumes:
       - ./uploads:/app/backend/uploads
     healthcheck:
@@ -152,6 +155,7 @@ services:
   caddy:
     image: caddy:2.8-alpine
     container_name: mirofish-caddy
+    init: true
     restart: unless-stopped
     depends_on:
       portal:
@@ -191,7 +195,7 @@ server {
 EOF
 
   if [ ! -f "${DEPLOY_DIR}/portal/index.html" ]; then
-    if ! curl -fsSL "https://raw.githubusercontent.com/cashemerson/Mirofish/refs/heads/cursor/mirofish-next-step-abb5/portal/index.html" -o "${DEPLOY_DIR}/portal/index.html"; then
+    if ! curl -fsSL "https://raw.githubusercontent.com/cashemerson/Mirofish/refs/heads/cursor/mirofish-deployment-recovery-2ae4/deploy/always-on/portal/index.html" -o "${DEPLOY_DIR}/portal/index.html"; then
       cat > "${DEPLOY_DIR}/portal/index.html" <<'EOF'
 <!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MiroFish Portal</title></head><body><h1>MiroFish Portal</h1><p>Portal page is missing. Restore portal/index.html from repository.</p></body></html>
 EOF

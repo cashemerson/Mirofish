@@ -32,12 +32,9 @@
       --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
     }
 
-    @font-face {
-      font-family: 'Inter';
-      src: url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @media (prefers-reduced-motion: no-preference) {
+      html { scroll-behavior: smooth; }
     }
-
-    html { scroll-behavior: smooth; }
 
     body {
       font-family: var(--font);
@@ -411,12 +408,18 @@
     .mobile-toggle { display: none; background: none; border: none; color: var(--text-primary); font-size: 24px; cursor: pointer; }
     @media (max-width: 640px) {
       .mobile-toggle { display: block; }
+      nav { position: relative; }
       nav .links {
         display: none; position: absolute; top: 64px; left: 0; right: 0;
         background: var(--bg-base); border-bottom: 1px solid var(--border);
-        flex-direction: column; padding: 16px;
+        flex-direction: column; padding: 16px; z-index: 200;
       }
       nav .links.open { display: flex; }
+    }
+
+    /* Responsive ontology grid */
+    @media (max-width: 768px) {
+      .ontology-grid { grid-template-columns: 1fr !important; }
     }
 
     /* Utility */
@@ -437,7 +440,7 @@
 <!-- Nav -->
 <nav>
   <div class="inner">
-    <a href="#" class="logo">
+    <a href="/" class="logo">
       <span class="icon">&#x1F41F;</span>
       CE Simulation
     </a>
@@ -581,16 +584,16 @@
       <p>Upload documents, monitor simulations, and view results directly from this portal.</p>
     </div>
 
-    <div class="tabs">
-      <button class="tab active" data-tab="tab-ontology">Ontology Generator</button>
-      <button class="tab" data-tab="tab-simulations">Simulations</button>
-      <button class="tab" data-tab="tab-reports">Reports</button>
-      <button class="tab" data-tab="tab-health">System Health</button>
+    <div class="tabs" role="tablist" aria-label="Workspace panels">
+      <button class="tab active" role="tab" aria-selected="true" aria-controls="tab-ontology" data-tab="tab-ontology">Ontology Generator</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tab-simulations" data-tab="tab-simulations">Simulations</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tab-reports" data-tab="tab-reports">Reports</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tab-health" data-tab="tab-health">System Health</button>
     </div>
 
     <!-- Ontology Tab -->
-    <div class="tab-content active" id="tab-ontology">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    <div class="tab-content active" id="tab-ontology" role="tabpanel">
+      <div class="ontology-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
         <div>
           <div class="upload-zone" id="uploadZone">
             <div class="icon">&#x1F4C4;</div>
@@ -602,15 +605,15 @@
         </div>
         <div>
           <div class="form-group">
-            <label>Simulation Requirement</label>
+            <label for="simRequirement">Simulation Requirement</label>
             <textarea class="form-textarea" id="simRequirement" placeholder="Describe what you want to predict or simulate. Example: 'Predict the outcome of the 2026 MLB season based on current team rosters and historical performance.'" rows="4"></textarea>
           </div>
           <div class="form-group">
-            <label>Project Name (optional)</label>
+            <label for="projectName">Project Name (optional)</label>
             <input class="form-input" id="projectName" placeholder="e.g. MLB-2026-Season" />
           </div>
           <div class="form-group">
-            <label>Additional Context (optional)</label>
+            <label for="additionalContext">Additional Context (optional)</label>
             <textarea class="form-textarea" id="additionalContext" placeholder="Any extra context to guide the ontology generation..." rows="3"></textarea>
           </div>
           <button class="btn btn-primary" id="generateBtn" onclick="generateOntology()" style="width:100%">
@@ -697,10 +700,10 @@
       <p>The MiroFish API is organized around three blueprints: Graph, Simulation, and Report.</p>
     </div>
 
-    <div class="tabs">
-      <button class="tab active" data-tab="api-graph">Graph</button>
-      <button class="tab" data-tab="api-sim">Simulation</button>
-      <button class="tab" data-tab="api-report">Report</button>
+    <div class="tabs" role="tablist" aria-label="API blueprints">
+      <button class="tab active" role="tab" aria-selected="true" aria-controls="api-graph" data-tab="api-graph">Graph</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="api-sim" data-tab="api-sim">Simulation</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="api-report" data-tab="api-report">Report</button>
     </div>
 
     <div class="tab-content active" id="api-graph">
@@ -878,100 +881,123 @@
 </footer>
 
 <script>
-const API_BASE = window.location.hostname === 'portal.cesimulation.it.com'
-  ? 'https://cesimulation.it.com'
-  : (window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://cesimulation.it.com');
+const API_BASE = (function() {
+  const h = window.location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:5001';
+  if (h === 'portal.cesimulation.it.com') return 'https://cesimulation.it.com';
+  if (h.endsWith('.cesimulation.it.com') || h === 'cesimulation.it.com') return 'https://cesimulation.it.com';
+  return window.location.origin;
+})();
 
-// Tabs
-document.querySelectorAll('.tabs').forEach(tabGroup => {
-  tabGroup.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const target = tab.dataset.tab;
-      tabGroup.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+const FETCH_TIMEOUT = 15000;
+
+function esc(s) {
+  if (s == null) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+function timedFetch(url, opts, ms) {
+  ms = ms || FETCH_TIMEOUT;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, Object.assign({}, opts, { signal: ctrl.signal }))
+    .finally(() => clearTimeout(timer));
+}
+
+// Tabs with ARIA
+document.querySelectorAll('.tabs').forEach(function(tg) {
+  tg.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var target = tab.dataset.tab;
+      tg.querySelectorAll('.tab').forEach(function(t) {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
       tab.classList.add('active');
-      const parent = tabGroup.parentElement;
-      parent.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
-      const targetEl = parent.querySelector('#' + target);
-      if (targetEl) targetEl.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      var parent = tg.parentElement;
+      parent.querySelectorAll('.tab-content').forEach(function(tc) { tc.classList.remove('active'); });
+      var el = parent.querySelector('#' + target);
+      if (el) el.classList.add('active');
     });
   });
 });
 
 // File upload
-const uploadZone = document.getElementById('uploadZone');
-const fileInput = document.getElementById('fileInput');
-let selectedFiles = [];
+var uploadZone = document.getElementById('uploadZone');
+var fileInput = document.getElementById('fileInput');
+var selectedFiles = [];
+var MAX_FILE_SIZE = 50 * 1024 * 1024;
 
-uploadZone.addEventListener('click', () => fileInput.click());
-uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
-uploadZone.addEventListener('drop', e => {
+uploadZone.addEventListener('click', function() { fileInput.click(); });
+uploadZone.addEventListener('dragover', function(e) { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', function() { uploadZone.classList.remove('dragover'); });
+uploadZone.addEventListener('drop', function(e) {
   e.preventDefault();
   uploadZone.classList.remove('dragover');
   handleFiles(e.dataTransfer.files);
 });
-fileInput.addEventListener('change', e => handleFiles(e.target.files));
+fileInput.addEventListener('change', function(e) { handleFiles(e.target.files); });
 
 function handleFiles(files) {
-  selectedFiles = Array.from(files);
-  const list = document.getElementById('fileList');
-  if (selectedFiles.length === 0) {
-    list.innerHTML = '';
-    return;
+  selectedFiles = [];
+  var list = document.getElementById('fileList');
+  var rejected = [];
+  Array.from(files).forEach(function(f) {
+    if (f.size > MAX_FILE_SIZE) { rejected.push(f.name); }
+    else { selectedFiles.push(f); }
+  });
+  if (selectedFiles.length === 0 && rejected.length === 0) { list.textContent = ''; return; }
+  var html = '';
+  if (selectedFiles.length) {
+    html += '<strong>Selected files:</strong><br>' +
+      selectedFiles.map(function(f) { return '\uD83D\uDCCE ' + esc(f.name) + ' (' + (f.size / 1024).toFixed(1) + ' KB)'; }).join('<br>');
   }
-  list.innerHTML = '<strong>Selected files:</strong><br>' +
-    selectedFiles.map(f => `&#x1F4CE; ${f.name} (${(f.size / 1024).toFixed(1)} KB)`).join('<br>');
+  if (rejected.length) {
+    html += '<br><span style="color:var(--red)">Rejected (>50MB): ' + rejected.map(esc).join(', ') + '</span>';
+  }
+  list.innerHTML = html;
 }
 
 // Ontology generation
 async function generateOntology() {
-  const req = document.getElementById('simRequirement').value.trim();
-  if (!req) { alert('Please enter a simulation requirement.'); return; }
-  if (selectedFiles.length === 0) { alert('Please select at least one file.'); return; }
+  var req = document.getElementById('simRequirement').value.trim();
+  var result = document.getElementById('ontologyResult');
+  if (!req) { result.innerHTML = '<div class="stat-card" style="border-color:var(--orange)"><div class="stat-label">Validation</div><div class="stat-value" style="font-size:16px;color:var(--orange)">Enter a simulation requirement</div></div>'; return; }
+  if (selectedFiles.length === 0) { result.innerHTML = '<div class="stat-card" style="border-color:var(--orange)"><div class="stat-label">Validation</div><div class="stat-value" style="font-size:16px;color:var(--orange)">Select at least one file</div></div>'; return; }
 
-  const btn = document.getElementById('generateBtn');
-  const result = document.getElementById('ontologyResult');
+  var btn = document.getElementById('generateBtn');
   btn.disabled = true;
   btn.textContent = 'Generating...';
   result.innerHTML = '<div class="log-stream"><div class="log-line">Uploading files and generating ontology...</div></div>';
 
-  const formData = new FormData();
-  selectedFiles.forEach(f => formData.append('files', f));
+  var formData = new FormData();
+  selectedFiles.forEach(function(f) { formData.append('files', f); });
   formData.append('simulation_requirement', req);
-  const projName = document.getElementById('projectName').value.trim();
+  var projName = document.getElementById('projectName').value.trim();
   if (projName) formData.append('project_name', projName);
-  const ctx = document.getElementById('additionalContext').value.trim();
+  var ctx = document.getElementById('additionalContext').value.trim();
   if (ctx) formData.append('additional_context', ctx);
 
   try {
-    const res = await fetch(API_BASE + '/api/graph/ontology/generate', {
-      method: 'POST',
-      body: formData,
-    });
-    const data = await res.json();
-    if (data.success || data.project_id) {
-      result.innerHTML = `
-        <div class="stat-card" style="border-color: var(--green);">
-          <div class="stat-label">Ontology Generated</div>
-          <div class="stat-value" style="font-size: 20px; color: var(--green);">Success</div>
-          <div class="stat-sub">Project ID: ${data.project_id || 'N/A'}</div>
-          <pre style="margin-top: 12px; padding: 12px; background: #0a0e14; border-radius: 8px; font-size: 12px; overflow-x: auto; color: var(--text-secondary); font-family: var(--mono);">${JSON.stringify(data, null, 2)}</pre>
-        </div>`;
+    var res = await timedFetch(API_BASE + '/api/graph/ontology/generate', { method: 'POST', body: formData }, 300000);
+    if (!res.ok) {
+      var errText = '';
+      try { var ed = await res.json(); errText = ed.error || res.statusText; } catch(_) { errText = res.status + ' ' + res.statusText; }
+      result.innerHTML = '<div class="stat-card" style="border-color:var(--red)"><div class="stat-label">API Error</div><div class="stat-value" style="font-size:16px;color:var(--red)">' + esc(errText) + '</div></div>';
+      return;
+    }
+    var data = await res.json();
+    if (data.success !== false && (data.project_id || data.ontology)) {
+      result.innerHTML = '<div class="stat-card" style="border-color:var(--green)"><div class="stat-label">Ontology Generated</div><div class="stat-value" style="font-size:20px;color:var(--green)">Success</div><div class="stat-sub">Project ID: ' + esc(data.project_id || 'N/A') + '</div><pre style="margin-top:12px;padding:12px;background:#0a0e14;border-radius:8px;font-size:12px;overflow-x:auto;color:var(--text-secondary);font-family:var(--mono)">' + esc(JSON.stringify(data, null, 2)) + '</pre></div>';
     } else {
-      result.innerHTML = `
-        <div class="stat-card" style="border-color: var(--red);">
-          <div class="stat-label">Error</div>
-          <div class="stat-value" style="font-size: 16px; color: var(--red);">${data.error || 'Unknown error'}</div>
-          <pre style="margin-top: 12px; padding: 12px; background: #0a0e14; border-radius: 8px; font-size: 12px; overflow-x: auto; color: var(--text-muted); font-family: var(--mono);">${JSON.stringify(data, null, 2)}</pre>
-        </div>`;
+      result.innerHTML = '<div class="stat-card" style="border-color:var(--red)"><div class="stat-label">Error</div><div class="stat-value" style="font-size:16px;color:var(--red)">' + esc(data.error || 'Unknown error') + '</div><pre style="margin-top:12px;padding:12px;background:#0a0e14;border-radius:8px;font-size:12px;overflow-x:auto;color:var(--text-muted);font-family:var(--mono)">' + esc(JSON.stringify(data, null, 2)) + '</pre></div>';
     }
   } catch (err) {
-    result.innerHTML = `
-      <div class="stat-card" style="border-color: var(--red);">
-        <div class="stat-label">Network Error</div>
-        <div class="stat-value" style="font-size: 16px; color: var(--red);">${err.message}</div>
-        <div class="stat-sub">Ensure the API is running at ${API_BASE}</div>
-      </div>`;
+    var msg = err.name === 'AbortError' ? 'Request timed out' : err.message;
+    result.innerHTML = '<div class="stat-card" style="border-color:var(--red)"><div class="stat-label">Network Error</div><div class="stat-value" style="font-size:16px;color:var(--red)">' + esc(msg) + '</div><div class="stat-sub">API endpoint: ' + esc(API_BASE) + '</div></div>';
   } finally {
     btn.disabled = false;
     btn.textContent = 'Generate Ontology \u2192';
@@ -980,90 +1006,99 @@ async function generateOntology() {
 
 // Load simulations
 async function loadSimulations() {
-  const el = document.getElementById('simulationsList');
+  var el = document.getElementById('simulationsList');
   try {
-    const res = await fetch(API_BASE + '/api/simulation/history?limit=20');
-    const data = await res.json();
+    var res = await timedFetch(API_BASE + '/api/simulation/history?limit=20');
+    if (!res.ok) { el.innerHTML = '<div class="console"><div class="console-body"><span class="err">API returned ' + res.status + '</span></div></div>'; return; }
+    var data = await res.json();
     if (data.simulations && data.simulations.length > 0) {
       el.innerHTML = '<div class="table-wrap"><table><thead><tr><th>ID</th><th>Project</th><th>Status</th><th>Created</th></tr></thead><tbody>' +
-        data.simulations.map(s => `<tr>
-          <td><code>${(s.simulation_id || s.id || '').substring(0, 12)}...</code></td>
-          <td>${s.project_name || s.project_id || '-'}</td>
-          <td><span class="tag ${s.status === 'completed' ? 'tag-green' : s.status === 'running' ? 'tag-blue' : 'tag-orange'}">${s.status || '-'}</span></td>
-          <td>${s.created_at ? new Date(s.created_at).toLocaleString() : '-'}</td>
-        </tr>`).join('') + '</tbody></table></div>';
+        data.simulations.map(function(s) {
+          var id = esc((s.simulation_id || s.id || '').substring(0, 12));
+          var proj = esc(s.project_name || s.project_id || '-');
+          var st = s.status || '-';
+          var cls = st === 'completed' ? 'tag-green' : st === 'running' ? 'tag-blue' : 'tag-orange';
+          var dt = s.created_at ? new Date(s.created_at).toLocaleString() : '-';
+          return '<tr><td><code>' + id + '...</code></td><td>' + proj + '</td><td><span class="tag ' + cls + '">' + esc(st) + '</span></td><td>' + esc(dt) + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
     } else if (data.success === false) {
-      el.innerHTML = `<div class="console"><div class="console-body"><span class="err">Error: ${data.error || 'Unknown'}</span></div></div>`;
+      el.innerHTML = '<div class="console"><div class="console-body"><span class="err">Error: ' + esc(data.error || 'Unknown') + '</span></div></div>';
     } else {
       el.innerHTML = '<div class="console"><div class="console-body"><span class="dim">No simulations found. Upload documents and generate an ontology to get started.</span></div></div>';
     }
   } catch (err) {
-    el.innerHTML = `<div class="console"><div class="console-body"><span class="err">Failed to connect: ${err.message}</span></div></div>`;
+    el.innerHTML = '<div class="console"><div class="console-body"><span class="err">Failed to connect: ' + esc(err.message) + '</span></div></div>';
   }
 }
 
 // Load reports
 async function loadReports() {
-  const el = document.getElementById('reportsList');
+  var el = document.getElementById('reportsList');
   try {
-    const res = await fetch(API_BASE + '/api/report/list?limit=20');
-    const data = await res.json();
+    var res = await timedFetch(API_BASE + '/api/report/list?limit=20');
+    if (!res.ok) { el.innerHTML = '<div class="console"><div class="console-body"><span class="err">API returned ' + res.status + '</span></div></div>'; return; }
+    var data = await res.json();
     if (data.reports && data.reports.length > 0) {
       el.innerHTML = '<div class="table-wrap"><table><thead><tr><th>Report</th><th>Simulation</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>' +
-        data.reports.map(r => `<tr>
-          <td><code>${(r.report_id || r.id || '').substring(0, 12)}...</code></td>
-          <td><code>${(r.simulation_id || '-').substring(0, 12)}...</code></td>
-          <td><span class="tag ${r.status === 'completed' ? 'tag-green' : 'tag-orange'}">${r.status || '-'}</span></td>
-          <td>${r.created_at ? new Date(r.created_at).toLocaleString() : '-'}</td>
-          <td><a href="${API_BASE}/api/report/${r.report_id || r.id}/download" target="_blank" class="btn btn-secondary" style="padding:4px 12px; font-size:12px;">Download</a></td>
-        </tr>`).join('') + '</tbody></table></div>';
+        data.reports.map(function(r) {
+          var rid = esc((r.report_id || r.id || '').substring(0, 12));
+          var sid = esc((r.simulation_id || '-').substring(0, 12));
+          var st = r.status || '-';
+          var cls = st === 'completed' ? 'tag-green' : 'tag-orange';
+          var dt = r.created_at ? new Date(r.created_at).toLocaleString() : '-';
+          var dl = esc(API_BASE + '/api/report/' + (r.report_id || r.id) + '/download');
+          return '<tr><td><code>' + rid + '...</code></td><td><code>' + sid + '...</code></td><td><span class="tag ' + cls + '">' + esc(st) + '</span></td><td>' + esc(dt) + '</td><td><a href="' + dl + '" target="_blank" rel="noopener" class="btn btn-secondary" style="padding:4px 12px;font-size:12px">Download</a></td></tr>';
+        }).join('') + '</tbody></table></div>';
+    } else if (data.success === false) {
+      el.innerHTML = '<div class="console"><div class="console-body"><span class="err">Error: ' + esc(data.error || 'Unknown') + '</span></div></div>';
     } else {
       el.innerHTML = '<div class="console"><div class="console-body"><span class="dim">No reports generated yet. Run a simulation first, then generate a report.</span></div></div>';
     }
   } catch (err) {
-    el.innerHTML = `<div class="console"><div class="console-body"><span class="err">Failed to connect: ${err.message}</span></div></div>`;
+    el.innerHTML = '<div class="console"><div class="console-body"><span class="err">Failed to connect: ' + esc(err.message) + '</span></div></div>';
   }
 }
 
 // Health checks
 function setStatusDot(id, ok) {
-  const dot = document.getElementById(id);
+  var dot = document.getElementById(id);
+  if (!dot) return;
   dot.className = 'status-dot ' + (ok === true ? 'ok' : ok === false ? 'err' : 'pending');
 }
 
-async function checkEndpoint(url, label) {
-  const start = Date.now();
+async function checkEndpoint(url) {
+  var start = Date.now();
   try {
-    const res = await fetch(url, { mode: 'no-cors', cache: 'no-cache' });
-    const ms = Date.now() - start;
-    return { ok: true, status: res.status || 'opaque', ms, label };
+    var res = await timedFetch(url, { cache: 'no-cache' }, 10000);
+    return { ok: res.ok, status: res.status, ms: Date.now() - start };
   } catch (err) {
-    const ms = Date.now() - start;
-    return { ok: false, error: err.message, ms, label };
+    return { ok: false, error: err.name === 'AbortError' ? 'timeout' : err.message, ms: Date.now() - start };
   }
 }
 
 async function runHealthChecks() {
-  const log = document.getElementById('healthLog');
+  var log = document.getElementById('healthLog');
   log.innerHTML = '<div class="log-line"><span class="ts dim">' + new Date().toLocaleTimeString() + '</span> Running health checks...</div>';
 
-  const checks = [
+  var checks = [
     { url: API_BASE + '/', label: 'App Frontend', dot: 'dotApp', status: 'statusApp', health: 'healthFrontend' },
     { url: API_BASE + '/api/simulation/history?limit=1', label: 'API Backend', dot: 'dotApi', status: 'statusApi', health: 'healthBackend' },
-    { url: 'https://portal.cesimulation.it.com/', label: 'Portal', dot: 'dotPortal', status: 'statusPortal', health: 'healthPortal' },
+    { url: window.location.origin + '/', label: 'Portal', dot: 'dotPortal', status: 'statusPortal', health: 'healthPortal' },
   ];
 
-  for (const check of checks) {
-    const result = await checkEndpoint(check.url, check.label);
-    const ts = new Date().toLocaleTimeString();
-    if (result.ok) {
-      log.innerHTML += `<div class="log-line"><span class="ts dim">${ts}</span> <span style="color:var(--green);">&#x2713;</span> ${check.label}: OK (${result.ms}ms)</div>`;
+  for (var i = 0; i < checks.length; i++) {
+    var check = checks[i];
+    var result = await checkEndpoint(check.url);
+    var ts = new Date().toLocaleTimeString();
+    var isUp = result.ok;
+    if (isUp) {
+      log.innerHTML += '<div class="log-line"><span class="ts dim">' + ts + '</span> <span style="color:var(--green)">\u2713</span> ' + esc(check.label) + ': HTTP ' + result.status + ' (' + result.ms + 'ms)</div>';
       setStatusDot(check.dot, true);
       document.getElementById(check.status).textContent = result.ms + 'ms';
       document.getElementById(check.health).textContent = 'Healthy';
       document.getElementById(check.health).style.color = 'var(--green)';
     } else {
-      log.innerHTML += `<div class="log-line"><span class="ts dim">${ts}</span> <span style="color:var(--red);">&#x2717;</span> ${check.label}: ${result.error} (${result.ms}ms)</div>`;
+      log.innerHTML += '<div class="log-line"><span class="ts dim">' + ts + '</span> <span style="color:var(--red)">\u2717</span> ' + esc(check.label) + ': ' + esc(result.error || 'HTTP ' + result.status) + ' (' + result.ms + 'ms)</div>';
       setStatusDot(check.dot, false);
       document.getElementById(check.status).textContent = 'error';
       document.getElementById(check.health).textContent = 'Down';
@@ -1071,44 +1106,37 @@ async function runHealthChecks() {
     }
   }
 
-  // Caddy specific
-  try {
-    const r = await fetch(API_BASE + '/', { mode: 'no-cors' });
-    document.getElementById('healthCaddy').textContent = 'Healthy';
-    document.getElementById('healthCaddy').style.color = 'var(--green)';
-  } catch {
-    document.getElementById('healthCaddy').textContent = 'Down';
-    document.getElementById('healthCaddy').style.color = 'var(--red)';
-  }
+  document.getElementById('healthCaddy').textContent = document.getElementById('healthFrontend').textContent;
+  document.getElementById('healthCaddy').style.color = document.getElementById('healthFrontend').style.color;
 
-  log.innerHTML += `<div class="log-line"><span class="ts dim">${new Date().toLocaleTimeString()}</span> Health checks complete.</div>`;
+  log.innerHTML += '<div class="log-line"><span class="ts dim">' + new Date().toLocaleTimeString() + '</span> Health checks complete.</div>';
 }
 
-// Auto-check on load
+// Auto-check on load (only status bar, defer tab data to tab activation)
 async function autoCheck() {
-  const endpoints = [
+  var endpoints = [
     { url: API_BASE + '/', dot: 'dotApp', status: 'statusApp' },
     { url: API_BASE + '/api/simulation/history?limit=1', dot: 'dotApi', status: 'statusApi' },
   ];
-
-  for (const ep of endpoints) {
-    try {
-      const res = await fetch(ep.url, { mode: 'no-cors', cache: 'no-cache' });
-      setStatusDot(ep.dot, true);
-      document.getElementById(ep.status).textContent = 'online';
-    } catch {
-      setStatusDot(ep.dot, false);
-      document.getElementById(ep.status).textContent = 'offline';
-    }
+  for (var i = 0; i < endpoints.length; i++) {
+    var ep = endpoints[i];
+    var result = await checkEndpoint(ep.url);
+    setStatusDot(ep.dot, result.ok);
+    document.getElementById(ep.status).textContent = result.ok ? 'online' : 'offline';
   }
-
-  // Portal self-check
   setStatusDot('dotPortal', true);
   document.getElementById('statusPortal').textContent = 'online';
-
-  loadSimulations();
-  loadReports();
 }
+
+// Lazy-load tab data on first activation
+var tabDataLoaded = {};
+document.querySelectorAll('.tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    var t = tab.dataset.tab;
+    if (t === 'tab-simulations' && !tabDataLoaded[t]) { tabDataLoaded[t] = true; loadSimulations(); }
+    if (t === 'tab-reports' && !tabDataLoaded[t]) { tabDataLoaded[t] = true; loadReports(); }
+  });
+});
 
 window.addEventListener('load', autoCheck);
 </script>
