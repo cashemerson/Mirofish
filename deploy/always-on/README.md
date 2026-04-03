@@ -93,6 +93,16 @@ curl -u admin:your-strong-password "https://portal.your-domain"
 curl "https://app.your-domain/api/simulation/history?limit=1"
 ```
 
+Or run the built-in smoke check (prompts for portal password):
+
+```bash
+./scripts/smoke-check.sh \
+  --app https://app.your-domain \
+  --portal https://portal.your-domain \
+  --api https://app.your-domain/api/simulation/history?limit=1 \
+  --user admin
+```
+
 ---
 
 ## Troubleshooting restart loops quickly
