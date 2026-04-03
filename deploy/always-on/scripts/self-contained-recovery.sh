@@ -154,7 +154,7 @@ server {
 NGINX_EOF
 echo "  portal-nginx.conf written"
 
-step "Writing portal/index.html"
+step "Writing portal/index.html (minimal recovery version)"
 cat > "${DEPLOY_DIR}/portal/index.html" << 'PORTAL_EOF'
 <!doctype html>
 <html lang="en">
