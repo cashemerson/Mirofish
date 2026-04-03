@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mirofish Comprehensive Sports Betting Intelligence Report</title>
+  <style>
+    :root {
+      --text: #111827;
+      --muted: #4b5563;
+      --line: #d1d5db;
+      --bg: #ffffff;
+      --accent: #0f766e;
+    }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.45;
+      margin: 0;
+      padding: 0;
+    }
+    .page {
+      max-width: 940px;
+      margin: 0 auto;
+      padding: 36px 40px 64px;
+    }
+    h1, h2, h3 {
+      line-height: 1.2;
+      margin-top: 28px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: 30px;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 8px;
+    }
+    h2 {
+      font-size: 22px;
+      color: var(--accent);
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 6px;
+    }
+    h3 {
+      font-size: 18px;
+    }
+    p, li {
+      font-size: 14px;
+    }
+    ul, ol {
+      margin-top: 6px;
+      margin-bottom: 10px;
+      padding-left: 24px;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .formula {
+      background: #f3f4f6;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f9fafb;
+    }
+    .small {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .directive {
+      border: 1px solid #9ca3af;
+      background: #f9fafb;
+      padding: 12px;
+      border-radius: 6px;
+    }
+    @media print {
+      .page {
+        padding: 20px 24px 30px;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>Mirofish Comprehensive Sports Betting Intelligence Report</h1>
+    <p class="meta"><strong>Version:</strong> 1.0 &nbsp; | &nbsp; <strong>Date:</strong> 2026-04-02</p>
+    <p class="meta"><strong>Audience:</strong> Mirofish prediction and execution engine</p>
+    <p class="meta"><strong>Objective:</strong> Build a robust, risk-aware, high-performance sports/event trading framework that behaves like a hybrid of elite quantitative bettor, Las Vegas high-stakes risk manager, and exchange microstructure trader.</p>
+
+    <h2>1) Executive Objective</h2>
+    <p>Mirofish must optimize for <strong>long-run risk-adjusted edge</strong>, not short-run hit rate.</p>
+    <ol>
+      <li>Generate calibrated probabilities (not just picks).</li>
+      <li>Convert every opportunity into fee/vig-adjusted EV.</li>
+      <li>Execute only when edge survives friction (limits, liquidity, slippage, fees).</li>
+      <li>Protect bankroll through strict risk controls and correlation-aware sizing.</li>
+      <li>Continuously learn from CLV, realized PnL, and model calibration drift.</li>
+    </ol>
+
+    <h2>2) Legal and Operational Guardrails</h2>
+    <ul>
+      <li>Operate only in legally permitted jurisdictions and products.</li>
+      <li>Respect book limits, market terms, and prohibited use clauses.</li>
+      <li>Keep full audit trails for data source, timestamp, model version, and execution rationale.</li>
+      <li>Treat all outputs as probabilistic recommendations, never guarantees.</li>
+    </ul>
+
+    <h2>3) US Market Context</h2>
+    <h3>Post-2018 structure</h3>
+    <p>The US market is fragmented by state regulation and operator footprint. This fragmentation creates opportunity through line shopping, timing mismatches across books, stale derivatives/props, and varying limit/risk tolerances.</p>
+    <h3>Common books (state-dependent)</h3>
+    <ul>
+      <li>FanDuel</li>
+      <li>DraftKings</li>
+      <li>BetMGM</li>
+      <li>Caesars</li>
+      <li>ESPN BET</li>
+      <li>Fanatics</li>
+      <li>BetRivers</li>
+      <li>bet365 (state dependent)</li>
+      <li>Hard Rock Bet (state dependent)</li>
+    </ul>
+    <h3>Exchange/event-contract venue</h3>
+    <ul>
+      <li>Kalshi (binary YES/NO contracts, CFTC-regulated model)</li>
+    </ul>
+
+    <h2>4) Kalshi / Event-Contract Intelligence</h2>
+    <h3>Core mechanics</h3>
+    <ul>
+      <li>Binary contracts settle to <strong>$1 or $0</strong>.</li>
+      <li>Contract price (for example 0.62) approximates market implied probability before costs.</li>
+      <li>YES/NO are tradable before settlement; order-book quality matters.</li>
+    </ul>
+    <h3>Mirofish EV treatment</h3>
+    <p class="formula">EV_yes = p_model - c - f</p>
+    <p class="formula">EV_no = (1 - p_model) - (1 - c) - f</p>
+    <p class="formula">Break-even YES probability = c + f</p>
+    <p>Always fee-normalize and account for spread, depth, and slippage. A strong model probability can still be a poor trade after execution costs.</p>
+
+    <h2>5) Core Sportsbook Math Standards</h2>
+    <h3>American odds to implied probability</h3>
+    <p class="formula">If +A: p_raw = 100 / (A + 100)</p>
+    <p class="formula">If -A: p_raw = |A| / (|A| + 100)</p>
+    <h3>No-vig conversion (2-way markets)</h3>
+    <p class="formula">p1_fair = p1_raw / (p1_raw + p2_raw)</p>
+    <p class="formula">p2_fair = p2_raw / (p1_raw + p2_raw)</p>
+    <h3>Expected value</h3>
+    <p class="formula">EV_per_$1 = p * (d - 1) - (1 - p)</p>
+    <p>Only enter when EV remains positive after fees, slippage, and uncertainty adjustments.</p>
+
+    <h2>6) Professional Trading Mindset</h2>
+    <h3>As an elite bettor</h3>
+    <ul>
+      <li>Demand quantified edge for every entry.</li>
+      <li>Pass when edge is unclear.</li>
+      <li>Prefer repeatable small edges over volatile swings.</li>
+      <li>Track expected vs realized outcomes separately.</li>
+      <li>Prioritize CLV as a process metric.</li>
+    </ul>
+    <h3>As a Vegas high-stakes risk manager</h3>
+    <ul>
+      <li>Track liability concentration by side/game/league/day.</li>
+      <li>Manage correlation risk (same-team, same-game, derivative chains).</li>
+      <li>Adapt limits by confidence, liquidity, and market stability.</li>
+      <li>Reprice aggressively during injuries/starter/weather shocks.</li>
+      <li>Differentiate true pricing from balancing/liability pricing.</li>
+    </ul>
+    <h3>As an exchange microstructure trader</h3>
+    <ul>
+      <li>Incorporate spread, depth, queue position, and fill probability.</li>
+      <li>Prefer limit-style execution where practical.</li>
+      <li>Treat execution quality as part of model quality.</li>
+    </ul>
+
+    <h2>7) MLB Modern History and Updated Baselines</h2>
+    <h3>Era summary</h3>
+    <ol>
+      <li>Late 1990s-2000s: offense-heavy period.</li>
+      <li>Moneyball era: OBP and efficiency optimization.</li>
+      <li>Statcast era: EV, launch angle, pitch design, matchup granularity.</li>
+      <li>2019: peak HR environment.</li>
+      <li>2023 rule changes: pitch clock, larger bases, shift limits altered run environment and pacing.</li>
+      <li>2024-2025: environment stabilized relative to 2023 spike.</li>
+    </ol>
+
+    <h3>2025 MLB league averages (per team game)</h3>
+    <table>
+      <thead>
+        <tr><th>Metric</th><th>Value</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Runs/Game</td><td>4.45</td></tr>
+        <tr><td>Batting Avg (BA)</td><td>.245</td></tr>
+        <tr><td>OBP</td><td>.315</td></tr>
+        <tr><td>SLG</td><td>.404</td></tr>
+        <tr><td>OPS</td><td>.719</td></tr>
+        <tr><td>HR/Game</td><td>1.16</td></tr>
+        <tr><td>BB/Game</td><td>3.16</td></tr>
+        <tr><td>SO/Game</td><td>8.36</td></tr>
+        <tr><td>SB/Game</td><td>0.71</td></tr>
+      </tbody>
+    </table>
+
+    <h3>2025 pitching baseline</h3>
+    <table>
+      <thead>
+        <tr><th>Metric</th><th>Value</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ERA</td><td>4.16</td></tr>
+        <tr><td>FIP</td><td>4.16</td></tr>
+        <tr><td>WHIP</td><td>1.289</td></tr>
+        <tr><td>K/9</td><td>8.5</td></tr>
+        <tr><td>BB/9</td><td>3.2</td></tr>
+        <tr><td>HR/9</td><td>1.2</td></tr>
+      </tbody>
+    </table>
+
+    <h3>MLB implications for Mirofish</h3>
+    <ul>
+      <li>Model starter quality + bullpen fatigue explicitly.</li>
+      <li>Use park + weather adjustments on totals and derivatives.</li>
+      <li>Reprice instantly on lineup confirmations and starter scratches.</li>
+      <li>Treat umpire and defense context as meaningful in totals/props.</li>
+    </ul>
+
+    <h2>8) What a High-Stakes Official Considers (Often Missed by Bettors)</h2>
+    <ul>
+      <li>Who is betting (sharp/public profile), not just what is bet.</li>
+      <li>Whether price moves are informational or liability-balancing.</li>
+      <li>Correlation stacking risk inside SGP and derivative markets.</li>
+      <li>Latency/stale feed exposure during lineup/injury windows.</li>
+      <li>Market-by-market confidence and dynamic limits.</li>
+      <li>Promo economics and effective hold dilution.</li>
+      <li>Manual trader workflow/shift timing and operational blind spots.</li>
+    </ul>
+
+    <h2>9) Mirofish System Architecture Requirements</h2>
+    <h3>Data layer</h3>
+    <ul>
+      <li>Multi-book odds snapshots with timestamps.</li>
+      <li>Kalshi top-of-book and depth snapshots.</li>
+      <li>Injury, lineup, starter/goalie, weather, travel/rest feeds.</li>
+      <li>Closing lines for CLV benchmarking.</li>
+    </ul>
+    <h3>Feature layer</h3>
+    <ul>
+      <li>No-vig market probabilities and cross-book dispersion.</li>
+      <li>News-shock features and time-to-event decay.</li>
+      <li>Liquidity and expected slippage proxies.</li>
+      <li>League-specific context (for MLB: bullpen index, park factors).</li>
+    </ul>
+    <h3>Model layer</h3>
+    <ul>
+      <li>Separate models by market type (moneyline/spread/total/props/binary events).</li>
+      <li>Probability calibration (isotonic or Platt).</li>
+      <li>Blend model output with market prior when appropriate.</li>
+    </ul>
+    <h3>Decision layer</h3>
+    <ul>
+      <li>Trade only if edge exceeds dynamic threshold.</li>
+      <li>Use fractional Kelly sizing with hard caps.</li>
+      <li>Re-check edge at order time before execution.</li>
+    </ul>
+
+    <h2>10) Risk Policy</h2>
+    <ul>
+      <li>Per-position max stake (% bankroll).</li>
+      <li>Per-event and correlated exposure caps.</li>
+      <li>Per-league and per-day exposure controls.</li>
+      <li>Daily drawdown circuit breaker and cool-down logic.</li>
+      <li>Stale-data and max-slippage abort conditions.</li>
+    </ul>
+
+    <h2>11) Performance and QA KPIs</h2>
+    <h3>Primary</h3>
+    <ul>
+      <li>CLV</li>
+      <li>ROI by market type</li>
+      <li>Risk-adjusted return</li>
+      <li>Max drawdown</li>
+    </ul>
+    <h3>Calibration</h3>
+    <ul>
+      <li>Brier score</li>
+      <li>Log loss</li>
+      <li>Reliability curve drift</li>
+    </ul>
+    <h3>Execution</h3>
+    <ul>
+      <li>Fill rate</li>
+      <li>Average slippage</li>
+      <li>Rejection rate by venue</li>
+    </ul>
+
+    <h2>12) Failure Modes and Red-Team Checklist</h2>
+    <ol>
+      <li>Overfitting short-term noise.</li>
+      <li>Ignoring fees and slippage.</li>
+      <li>Correlation blow-ups (especially props/SGP clusters).</li>
+      <li>Data latency during injury/lineup windows.</li>
+      <li>Model calibration drift not corrected in time.</li>
+      <li>Size escalation after losses.</li>
+      <li>Assuming liquidity exists at desired size.</li>
+    </ol>
+    <p>Mitigations: freshness checks, automatic confidence decay, strict exposure graphing, continual recalibration, and hard risk circuit breakers.</p>
+
+    <h2>13) Direct Mirofish Directive</h2>
+    <div class="directive">
+      <p><strong>For each candidate market, output:</strong></p>
+      <ol>
+        <li>Model probability with confidence interval.</li>
+        <li>Market implied probability (vig/fee adjusted).</li>
+        <li>EV after all explicit costs.</li>
+        <li>Stake recommendation (fractional Kelly + hard caps).</li>
+        <li>Correlation impact on existing open portfolio.</li>
+        <li>Abort decision if freshness/slippage/risk rules fail.</li>
+      </ol>
+      <p><strong>Optimization target:</strong> long-run risk-adjusted growth, not short-run win rate.</p>
+    </div>
+
+    <h2>14) Sources Summary (for data context)</h2>
+    <ul>
+      <li>Baseball-Reference: MLB 2025 major-league batting/pitching averages and year-by-year tables.</li>
+      <li>Kalshi help/docs ecosystem for event contract and fee structure reference framing.</li>
+    </ul>
+    <p class="small">Note: Always re-validate current season stats and current venue fees before production use.</p>
+  </main>
+</body>
+</html>
