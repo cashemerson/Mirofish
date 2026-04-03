@@ -1,0 +1,10 @@
+/MiroFish/.env
+/MiroFish/node_modules/
+/MiroFish/frontend/node_modules/
+/MiroFish/backend/.venv/
+/MiroFish/backend/uploads/
+/MiroFish/.DS_Store
+/deploy/always-on/.tls.env
+/deploy/always-on/.env
+/deploy/always-on/.env.proxy
+/deploy/always-on/Caddyfile
