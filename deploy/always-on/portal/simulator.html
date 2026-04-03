@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulator — CE Simulation</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #06090f; --card: #0d1117; --hover: #161b22; --elevated: #1c2333;
+      --border: #21262d; --border-a: #30363d; --text: #e6edf3; --muted: #8b949e;
+      --dim: #6e7681; --accent: #58a6ff; --green: #3fb950; --orange: #d29922;
+      --red: #f85149; --purple: #bc8cff; --r: 12px; --rs: 8px;
+      --mono: 'JetBrains Mono','Fira Code',monospace;
+      --font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    a { color: var(--accent); text-decoration: none; }
+
+    nav { position: sticky; top: 0; z-index: 100; background: rgba(6,9,15,.85); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); padding: 0 24px; }
+    nav .inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    nav .logo { font-size: 20px; font-weight: 700; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+    nav .logo .icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--purple)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    nav .links { display: flex; gap: 8px; }
+    nav .links a { color: var(--muted); padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; transition: all .15s; }
+    nav .links a:hover { color: var(--text); background: var(--elevated); }
+    nav .links a.cta { background: var(--accent); color: #fff; }
+
+    .hero-sm { padding: 60px 0 40px; text-align: center; }
+    .hero-sm h1 { font-size: 36px; font-weight: 700; margin-bottom: 12px; }
+    .hero-sm p { color: var(--muted); font-size: 16px; max-width: 600px; margin: 0 auto; }
+
+    .section { padding: 40px 0 80px; }
+    h2 { font-size: 24px; margin-bottom: 20px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 24px; }
+    .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+    input, select, textarea {
+      width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--rs); color: var(--text); font-size: 14px; font-family: var(--font);
+      transition: border-color .15s; margin-bottom: 14px;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; }
+    select { cursor: pointer; }
+
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: var(--rs); font-size: 14px; font-weight: 600; border: 1px solid var(--border); cursor: pointer; font-family: var(--font); transition: all .15s; background: var(--card); color: var(--text); }
+    .btn:hover { background: var(--hover); }
+    .btn-p { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-p:hover { opacity: .9; }
+    .btn-g { background: var(--green); color: #fff; border-color: var(--green); }
+    .btn-r { background: var(--red); color: #fff; border-color: var(--red); }
+
+    .result-box { background: #0a0e14; border: 1px solid var(--border); border-radius: var(--rs); padding: 16px; font-family: var(--mono); font-size: 13px; color: var(--muted); max-height: 500px; overflow-y: auto; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+    .g { color: var(--green); } .r { color: var(--red); } .o { color: var(--orange); } .b { color: var(--accent); } .p { color: var(--purple); } .d { color: var(--dim); }
+
+    .wizard-steps { display: flex; gap: 0; margin-bottom: 32px; }
+    .wstep { flex: 1; padding: 14px 16px; background: var(--card); border: 1px solid var(--border); text-align: center; font-size: 13px; font-weight: 600; color: var(--dim); cursor: pointer; transition: all .15s; position: relative; }
+    .wstep:first-child { border-radius: var(--r) 0 0 var(--r); }
+    .wstep:last-child { border-radius: 0 var(--r) var(--r) 0; }
+    .wstep.active { background: var(--elevated); color: var(--accent); border-color: var(--accent); z-index: 1; }
+    .wstep.done { color: var(--green); }
+    .wpanel { display: none; }
+    .wpanel.active { display: block; }
+
+    .stat-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .stat { flex: 1; min-width: 120px; background: var(--card); border: 1px solid var(--border); border-radius: var(--rs); padding: 14px; text-align: center; }
+    .stat .v { font-size: 24px; font-weight: 700; }
+    .stat .l { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 0; text-align: center; color: var(--dim); font-size: 13px; }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<nav>
+  <div class="inner">
+    <a href="index.html" class="logo"><span class="icon">&#x1F41F;</span> CE Simulation</a>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="report.html">Intelligence</a>
+      <a href="index.html#api">API</a>
+      <a href="https://app.cesimulation.it.com" class="cta" target="_blank" rel="noopener">Launch App &rarr;</a>
+    </div>
+  </div>
+</nav>
+
+<div class="hero-sm">
+  <div class="container">
+    <h1>Simulation Workspace</h1>
+    <p>Step-by-step simulation pipeline and live market evaluation tools.</p>
+  </div>
+</div>
+
+<div class="section">
+  <div class="container">
+
+    <!-- Simulation Wizard -->
+    <h2>Simulation Pipeline</h2>
+    <div class="wizard-steps">
+      <div class="wstep active" onclick="showStep(0)">1. Upload</div>
+      <div class="wstep" onclick="showStep(1)">2. Ontology</div>
+      <div class="wstep" onclick="showStep(2)">3. Graph</div>
+      <div class="wstep" onclick="showStep(3)">4. Simulate</div>
+      <div class="wstep" onclick="showStep(4)">5. Report</div>
+    </div>
+
+    <!-- Step 0: Upload -->
+    <div class="wpanel active" id="step0">
+      <div class="grid-2">
+        <div class="card">
+          <h3>Upload Seed Documents</h3>
+          <div id="dropZone" style="border:2px dashed var(--border-a); border-radius:var(--r); padding:40px; text-align:center; cursor:pointer; transition:all .2s;" onclick="document.getElementById('fInput').click()">
+            <div style="font-size:32px; margin-bottom:8px;">&#x1F4C4;</div>
+            <p style="color:var(--muted); font-size:14px;"><strong>Drop files here</strong> or click to browse</p>
+            <p style="color:var(--dim); font-size:12px; margin-top:6px;">PDF, Markdown, TXT (max 50MB each)</p>
+          </div>
+          <input type="file" id="fInput" multiple accept=".pdf,.md,.txt,.markdown" style="display:none" />
+          <div id="fileListW" style="margin-top:12px; font-size:13px; color:var(--muted);"></div>
+        </div>
+        <div class="card">
+          <h3>Simulation Parameters</h3>
+          <label>Simulation Requirement *</label>
+          <textarea id="wReq" placeholder="What do you want to predict? Example: 'Predict how proposed tariff changes will affect semiconductor stocks over the next quarter.'"></textarea>
+          <label>Project Name</label>
+          <input id="wName" placeholder="e.g. Semiconductor-Tariffs-Q2" />
+          <label>Additional Context</label>
+          <textarea id="wCtx" placeholder="Extra context to guide ontology generation..." rows="3"></textarea>
+          <button class="btn btn-p" onclick="wizardGenerate()" id="wGenBtn" style="width:100%">Generate Ontology &rarr;</button>
+        </div>
+      </div>
+      <div id="wGenResult" style="margin-top:20px;"></div>
+    </div>
+
+    <!-- Step 1: Ontology Result -->
+    <div class="wpanel" id="step1">
+      <div class="card">
+        <h3>Generated Ontology</h3>
+        <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">Review the extracted entity types and relationships. Proceed to build the knowledge graph.</p>
+        <div class="result-box" id="ontologyView"><span class="d">Ontology will appear here after generation...</span></div>
+        <div style="margin-top:16px; display:flex; gap:12px;">
+          <button class="btn btn-p" onclick="wizardBuildGraph()" id="wBuildBtn">Build Knowledge Graph &rarr;</button>
+          <button class="btn" onclick="showStep(0)">&larr; Back to Upload</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Graph -->
+    <div class="wpanel" id="step2">
+      <div class="card">
+        <h3>Knowledge Graph</h3>
+        <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">The Zep knowledge graph is being built from your documents. This may take a few minutes.</p>
+        <div class="result-box" id="graphView"><span class="d">Graph build status will appear here...</span></div>
+        <div style="margin-top:16px; display:flex; gap:12px;">
+          <button class="btn btn-p" onclick="wizardCreateSim()" id="wSimBtn">Create Simulation &rarr;</button>
+          <button class="btn" onclick="showStep(1)">&larr; Back</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Simulate -->
+    <div class="wpanel" id="step3">
+      <div class="card">
+        <h3>Run Simulation</h3>
+        <div class="grid-2" style="margin-bottom:16px;">
+          <div>
+            <label>Max Rounds</label>
+            <input type="number" id="wRounds" value="10" min="1" max="100" />
+          </div>
+          <div>
+            <label>Platform</label>
+            <select id="wPlatform">
+              <option value="both">Both (Twitter + Reddit)</option>
+              <option value="twitter">Twitter only</option>
+              <option value="reddit">Reddit only</option>
+            </select>
+          </div>
+        </div>
+        <div class="result-box" id="simView"><span class="d">Simulation output will stream here...</span></div>
+        <div style="margin-top:16px; display:flex; gap:12px;">
+          <button class="btn btn-g" onclick="wizardStartSim()" id="wStartBtn">Start Simulation &#x25B6;</button>
+          <button class="btn btn-r" onclick="wizardStopSim()" id="wStopBtn" style="display:none;">Stop &#x25A0;</button>
+          <button class="btn btn-p" onclick="wizardGenReport()" id="wReportBtn" style="display:none;">Generate Report &rarr;</button>
+          <button class="btn" onclick="showStep(2)">&larr; Back</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Report -->
+    <div class="wpanel" id="step4">
+      <div class="card">
+        <h3>Prediction Report</h3>
+        <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">The ReportAgent is analyzing simulation results and generating your prediction report.</p>
+        <div class="result-box" id="reportView"><span class="d">Report content will appear here...</span></div>
+        <div style="margin-top:16px; display:flex; gap:12px;">
+          <button class="btn" onclick="showStep(3)">&larr; Back</button>
+          <button class="btn btn-p" id="wDownloadBtn" style="display:none;">Download Report</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Market Evaluator -->
+    <h2 style="margin-top:60px;">Market Evaluator</h2>
+    <p style="color:var(--muted); font-size:14px; margin-bottom:24px;">Calculate expected value, fair probabilities, and Kelly stake sizing for any market.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Odds Converter &amp; EV Calculator</h3>
+        <label>American Odds</label>
+        <input type="number" id="odds" value="-150" />
+        <label>Your Model Probability (%)</label>
+        <input type="number" id="modelProb" value="65" min="1" max="99" step="0.1" />
+        <label>Fee / Vig Cost (%)</label>
+        <input type="number" id="feeCost" value="0" min="0" step="0.1" />
+        <button class="btn btn-p" onclick="calcEV()" style="width:100%">Calculate</button>
+      </div>
+      <div class="card">
+        <h3>Results</h3>
+        <div class="stat-row">
+          <div class="stat"><div class="v" id="rImplied">--</div><div class="l">Implied Prob</div></div>
+          <div class="stat"><div class="v" id="rDecimal">--</div><div class="l">Decimal Odds</div></div>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><div class="v" id="rEV">--</div><div class="l">EV / $1</div></div>
+          <div class="stat"><div class="v" id="rEdge">--</div><div class="l">Edge</div></div>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><div class="v" id="rKelly">--</div><div class="l">Kelly %</div></div>
+          <div class="stat"><div class="v" id="rHalfKelly">--</div><div class="l">Half Kelly %</div></div>
+        </div>
+        <div class="result-box" id="evDetail" style="margin-top:12px;"><span class="d">Click Calculate to see breakdown.</span></div>
+      </div>
+    </div>
+
+    <!-- No-Vig Calculator -->
+    <h2 style="margin-top:60px;">No-Vig Fair Probability</h2>
+    <p style="color:var(--muted); font-size:14px; margin-bottom:24px;">Strip the vig from a two-way market to find fair probabilities.</p>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Two-Way Market</h3>
+        <label>Side A American Odds</label>
+        <input type="number" id="vigA" value="-150" />
+        <label>Side B American Odds</label>
+        <input type="number" id="vigB" value="+130" />
+        <button class="btn btn-p" onclick="calcVig()" style="width:100%">Remove Vig</button>
+      </div>
+      <div class="card">
+        <h3>Fair Probabilities</h3>
+        <div class="stat-row">
+          <div class="stat"><div class="v" id="fairA">--</div><div class="l">Side A Fair</div></div>
+          <div class="stat"><div class="v" id="fairB">--</div><div class="l">Side B Fair</div></div>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><div class="v" id="vigPct">--</div><div class="l">Vig %</div></div>
+          <div class="stat"><div class="v" id="overround">--</div><div class="l">Overround</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <p>CE Simulation &mdash; <a href="index.html">Home</a> &middot; <a href="report.html">Intelligence</a> &middot; <a href="https://app.cesimulation.it.com" target="_blank" rel="noopener">Launch App</a></p>
+  </div>
+</footer>
+
+<script>
+const API = window.location.hostname === 'portal.cesimulation.it.com'
+  ? 'https://cesimulation.it.com' : (window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://cesimulation.it.com');
+
+let wState = { projectId: null, graphId: null, simId: null, reportId: null };
+let wFiles = [];
+
+// Wizard steps
+function showStep(n) {
+  document.querySelectorAll('.wstep').forEach((s, i) => { s.classList.toggle('active', i === n); });
+  document.querySelectorAll('.wpanel').forEach((p, i) => { p.classList.toggle('active', i === n); });
+}
+
+// File handling
+const dz = document.getElementById('dropZone');
+const fi = document.getElementById('fInput');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = 'var(--accent)'; });
+dz.addEventListener('dragleave', () => { dz.style.borderColor = 'var(--border-a)'; });
+dz.addEventListener('drop', e => { e.preventDefault(); dz.style.borderColor = 'var(--border-a)'; pickFiles(e.dataTransfer.files); });
+fi.addEventListener('change', e => pickFiles(e.target.files));
+function pickFiles(files) {
+  wFiles = Array.from(files);
+  document.getElementById('fileListW').innerHTML = wFiles.length ?
+    '<strong>Files:</strong> ' + wFiles.map(f => f.name).join(', ') : '';
+}
+
+// Generate ontology
+async function wizardGenerate() {
+  const req = document.getElementById('wReq').value.trim();
+  if (!req) return alert('Enter a simulation requirement.');
+  if (!wFiles.length) return alert('Select at least one file.');
+  const btn = document.getElementById('wGenBtn');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  const fd = new FormData();
+  wFiles.forEach(f => fd.append('files', f));
+  fd.append('simulation_requirement', req);
+  const name = document.getElementById('wName').value.trim();
+  if (name) fd.append('project_name', name);
+  const ctx = document.getElementById('wCtx').value.trim();
+  if (ctx) fd.append('additional_context', ctx);
+  try {
+    const res = await fetch(API + '/api/graph/ontology/generate', { method: 'POST', body: fd });
+    const data = await res.json();
+    wState.projectId = data.project_id || null;
+    document.getElementById('ontologyView').innerHTML = '<span class="g">Ontology generated successfully.</span>\n\n' + JSON.stringify(data, null, 2);
+    document.querySelectorAll('.wstep')[0].classList.add('done');
+    showStep(1);
+  } catch (err) {
+    document.getElementById('wGenResult').innerHTML = '<div class="result-box"><span class="r">Error: ' + err.message + '</span></div>';
+  }
+  btn.disabled = false; btn.textContent = 'Generate Ontology \u2192';
+}
+
+// Build graph
+async function wizardBuildGraph() {
+  if (!wState.projectId) return alert('Generate ontology first.');
+  const btn = document.getElementById('wBuildBtn');
+  btn.disabled = true; btn.textContent = 'Building...';
+  const gv = document.getElementById('graphView');
+  gv.innerHTML = '<span class="b">Starting graph build...</span>';
+  try {
+    const res = await fetch(API + '/api/graph/build', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project_id: wState.projectId })
+    });
+    const data = await res.json();
+    wState.graphId = data.graph_id || null;
+    gv.innerHTML = '<span class="g">Graph build initiated.</span>\n\n' + JSON.stringify(data, null, 2);
+    if (data.task_id) {
+      gv.innerHTML += '\n\n<span class="b">Polling task status...</span>';
+      pollTask(data.task_id, gv);
+    }
+    document.querySelectorAll('.wstep')[1].classList.add('done');
+    showStep(2);
+  } catch (err) { gv.innerHTML = '<span class="r">Error: ' + err.message + '</span>'; }
+  btn.disabled = false; btn.textContent = 'Build Knowledge Graph \u2192';
+}
+
+async function pollTask(taskId, el) {
+  for (let i = 0; i < 60; i++) {
+    await new Promise(r => setTimeout(r, 5000));
+    try {
+      const res = await fetch(API + '/api/graph/task/' + taskId);
+      const data = await res.json();
+      el.innerHTML += '\n<span class="d">[' + new Date().toLocaleTimeString() + ']</span> Status: <span class="b">' + (data.status || 'unknown') + '</span>';
+      if (data.status === 'completed' || data.status === 'done') {
+        wState.graphId = data.graph_id || wState.graphId;
+        el.innerHTML += '\n<span class="g">Graph build complete!</span>';
+        document.querySelectorAll('.wstep')[2].classList.add('done');
+        return;
+      }
+      if (data.status === 'failed' || data.status === 'error') {
+        el.innerHTML += '\n<span class="r">Build failed: ' + (data.error || '') + '</span>';
+        return;
+      }
+    } catch (err) { el.innerHTML += '\n<span class="o">Poll error: ' + err.message + '</span>'; }
+  }
+}
+
+// Create & start simulation
+async function wizardCreateSim() {
+  if (!wState.projectId) return alert('Build graph first.');
+  const sv = document.getElementById('simView');
+  sv.innerHTML = '<span class="b">Creating simulation...</span>';
+  try {
+    const res = await fetch(API + '/api/simulation/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project_id: wState.projectId, graph_id: wState.graphId })
+    });
+    const data = await res.json();
+    wState.simId = data.simulation_id || null;
+    sv.innerHTML = '<span class="g">Simulation created.</span>\n' + JSON.stringify(data, null, 2);
+    document.querySelectorAll('.wstep')[2].classList.add('done');
+    showStep(3);
+  } catch (err) { sv.innerHTML = '<span class="r">Error: ' + err.message + '</span>'; }
+}
+
+async function wizardStartSim() {
+  if (!wState.simId) return alert('Create simulation first.');
+  const sv = document.getElementById('simView');
+  const rounds = parseInt(document.getElementById('wRounds').value) || 10;
+  document.getElementById('wStartBtn').style.display = 'none';
+  document.getElementById('wStopBtn').style.display = 'inline-flex';
+  sv.innerHTML = '<span class="g">Starting simulation (' + rounds + ' rounds)...</span>';
+  try {
+    const res = await fetch(API + '/api/simulation/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ simulation_id: wState.simId, max_rounds: rounds })
+    });
+    const data = await res.json();
+    sv.innerHTML += '\n' + JSON.stringify(data, null, 2);
+    pollSimStatus();
+  } catch (err) { sv.innerHTML += '\n<span class="r">Error: ' + err.message + '</span>'; }
+}
+
+async function pollSimStatus() {
+  const sv = document.getElementById('simView');
+  for (let i = 0; i < 120; i++) {
+    await new Promise(r => setTimeout(r, 5000));
+    try {
+      const res = await fetch(API + '/api/simulation/' + wState.simId + '/run-status');
+      const data = await res.json();
+      sv.innerHTML += '\n<span class="d">[' + new Date().toLocaleTimeString() + ']</span> ' + (data.status || 'polling...');
+      if (data.status === 'completed' || data.status === 'done') {
+        sv.innerHTML += '\n<span class="g">Simulation complete!</span>';
+        document.getElementById('wStopBtn').style.display = 'none';
+        document.getElementById('wReportBtn').style.display = 'inline-flex';
+        document.querySelectorAll('.wstep')[3].classList.add('done');
+        return;
+      }
+      if (data.status === 'failed' || data.status === 'stopped') {
+        sv.innerHTML += '\n<span class="r">Simulation ended: ' + data.status + '</span>';
+        document.getElementById('wStopBtn').style.display = 'none';
+        return;
+      }
+    } catch (err) { sv.innerHTML += '\n<span class="o">' + err.message + '</span>'; }
+  }
+}
+
+async function wizardStopSim() {
+  try {
+    await fetch(API + '/api/simulation/stop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ simulation_id: wState.simId })
+    });
+    document.getElementById('simView').innerHTML += '\n<span class="o">Stop requested.</span>';
+  } catch (err) { document.getElementById('simView').innerHTML += '\n<span class="r">' + err.message + '</span>'; }
+  document.getElementById('wStopBtn').style.display = 'none';
+  document.getElementById('wStartBtn').style.display = 'inline-flex';
+}
+
+async function wizardGenReport() {
+  if (!wState.simId) return;
+  showStep(4);
+  const rv = document.getElementById('reportView');
+  rv.innerHTML = '<span class="b">Generating report...</span>';
+  try {
+    const res = await fetch(API + '/api/report/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ simulation_id: wState.simId })
+    });
+    const data = await res.json();
+    wState.reportId = data.report_id || null;
+    rv.innerHTML = '<span class="g">Report generation started.</span>\n' + JSON.stringify(data, null, 2);
+    if (data.report_id || data.task_id) pollReportStatus(data.report_id || data.task_id);
+  } catch (err) { rv.innerHTML = '<span class="r">Error: ' + err.message + '</span>'; }
+}
+
+async function pollReportStatus(id) {
+  const rv = document.getElementById('reportView');
+  for (let i = 0; i < 60; i++) {
+    await new Promise(r => setTimeout(r, 5000));
+    try {
+      const res = await fetch(API + '/api/report/' + id);
+      const data = await res.json();
+      if (data.content || data.sections) {
+        rv.innerHTML = '<span class="g">Report ready!</span>\n\n' + (data.content || JSON.stringify(data.sections, null, 2));
+        document.getElementById('wDownloadBtn').style.display = 'inline-flex';
+        document.getElementById('wDownloadBtn').onclick = () => window.open(API + '/api/report/' + id + '/download', '_blank');
+        document.querySelectorAll('.wstep')[4].classList.add('done');
+        return;
+      }
+      rv.innerHTML += '\n<span class="d">[' + new Date().toLocaleTimeString() + ']</span> generating...';
+    } catch (err) { rv.innerHTML += '\n<span class="o">' + err.message + '</span>'; }
+  }
+}
+
+// EV Calculator
+function americanToDecimal(a) { return a > 0 ? (a / 100) + 1 : (100 / Math.abs(a)) + 1; }
+function americanToImplied(a) { return a > 0 ? 100 / (a + 100) : Math.abs(a) / (Math.abs(a) + 100); }
+
+function calcEV() {
+  const odds = parseInt(document.getElementById('odds').value);
+  const mp = parseFloat(document.getElementById('modelProb').value) / 100;
+  const fee = parseFloat(document.getElementById('feeCost').value) / 100;
+  if (isNaN(odds) || odds === 0 || isNaN(mp)) return;
+
+  const dec = americanToDecimal(odds);
+  const imp = americanToImplied(odds);
+  const ev = mp * (dec - 1) - (1 - mp) - fee;
+  const edge = mp - imp;
+  const kelly = edge > 0 ? (mp * (dec - 1) - (1 - mp)) / (dec - 1) : 0;
+  const halfKelly = kelly / 2;
+
+  document.getElementById('rImplied').textContent = (imp * 100).toFixed(1) + '%';
+  document.getElementById('rDecimal').textContent = dec.toFixed(3);
+
+  const evEl = document.getElementById('rEV');
+  evEl.textContent = (ev >= 0 ? '+' : '') + ev.toFixed(3);
+  evEl.style.color = ev >= 0 ? 'var(--green)' : 'var(--red)';
+
+  const edgeEl = document.getElementById('rEdge');
+  edgeEl.textContent = (edge >= 0 ? '+' : '') + (edge * 100).toFixed(1) + '%';
+  edgeEl.style.color = edge >= 0 ? 'var(--green)' : 'var(--red)';
+
+  document.getElementById('rKelly').textContent = kelly > 0 ? (kelly * 100).toFixed(1) + '%' : '0%';
+  document.getElementById('rHalfKelly').textContent = halfKelly > 0 ? (halfKelly * 100).toFixed(1) + '%' : '0%';
+
+  const det = document.getElementById('evDetail');
+  det.innerHTML =
+    '<span class="b">Input:</span> ' + odds + ' American | Model: ' + (mp*100).toFixed(1) + '% | Fee: ' + (fee*100).toFixed(1) + '%\n' +
+    '<span class="b">Decimal:</span> ' + dec.toFixed(3) + '\n' +
+    '<span class="b">Implied:</span> ' + (imp*100).toFixed(2) + '% (raw, before vig removal)\n' +
+    '<span class="b">Model prob:</span> ' + (mp*100).toFixed(1) + '%\n' +
+    '<span class="b">Edge:</span> ' + (edge >= 0 ? '+' : '') + (edge*100).toFixed(2) + ' percentage points\n' +
+    '<span class="b">EV per $1:</span> ' + (ev >= 0 ? '<span class="g">+' : '<span class="r">') + ev.toFixed(4) + '</span>' +
+    (fee > 0 ? ' (after ' + (fee*100).toFixed(1) + '% fee)' : '') + '\n' +
+    '<span class="b">Full Kelly:</span> ' + (kelly*100).toFixed(2) + '% of bankroll\n' +
+    '<span class="b">Half Kelly (recommended):</span> ' + (halfKelly*100).toFixed(2) + '% of bankroll\n' +
+    '\n' + (ev > 0 ? '<span class="g">&#x2713; POSITIVE EV — edge exists after costs</span>' : '<span class="r">&#x2717; NEGATIVE EV — no edge, pass</span>');
+}
+
+function calcVig() {
+  const a = parseInt(document.getElementById('vigA').value);
+  const b = parseInt(document.getElementById('vigB').value);
+  if (isNaN(a) || a === 0 || isNaN(b) || b === 0) return;
+
+  const pA = americanToImplied(a);
+  const pB = americanToImplied(b);
+  const total = pA + pB;
+  const fairA = pA / total;
+  const fairB = pB / total;
+  const vig = total - 1;
+
+  document.getElementById('fairA').textContent = (fairA * 100).toFixed(1) + '%';
+  document.getElementById('fairB').textContent = (fairB * 100).toFixed(1) + '%';
+  document.getElementById('vigPct').textContent = (vig * 100).toFixed(1) + '%';
+  document.getElementById('overround').textContent = (total * 100).toFixed(1) + '%';
+}
+</script>
+
+</body>
+</html>
