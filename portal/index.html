@@ -11,8 +11,6 @@
         --panel-2: #1f2937;
         --text: #e5e7eb;
         --muted: #94a3b8;
-        --accent: #22c55e;
-        --danger: #ef4444;
       }
       * { box-sizing: border-box; }
       body {
@@ -33,6 +31,29 @@
         border-radius: 14px;
         padding: 20px;
         margin-bottom: 16px;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .lang-switch {
+        display: flex;
+        gap: 8px;
+      }
+      .lang-btn {
+        border: 1px solid #334155;
+        background: var(--panel);
+        color: var(--text);
+        padding: 6px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .lang-btn.active {
+        border-color: #60a5fa;
+        background: #1e3a8a;
       }
       h1 { margin: 0 0 8px; font-size: 30px; }
       p.sub { margin: 0 0 20px; color: var(--muted); }
@@ -96,35 +117,43 @@
   <body>
     <div class="wrap">
       <div class="card">
-        <h1>MiroFish Portal</h1>
-        <p class="sub">Save your deployment URL and launch MiroFish from any browser.</p>
+        <div class="top">
+          <div>
+            <h1 data-i18n="title">MiroFish Portal</h1>
+            <p class="sub" data-i18n="subtitle">Save your deployment URL and launch MiroFish from any browser.</p>
+          </div>
+          <div class="lang-switch">
+            <button id="langEn" class="lang-btn" type="button">English</button>
+            <button id="langZh" class="lang-btn" type="button">中文</button>
+          </div>
+        </div>
         <div class="grid">
           <div>
-            <label for="frontendUrl">Frontend URL</label>
-            <input id="frontendUrl" placeholder="https://your-mirofish.example.com" />
+            <label for="frontendUrl" data-i18n="frontendLabel">Frontend URL</label>
+            <input id="frontendUrl" data-i18n-placeholder="frontendPlaceholder" placeholder="https://your-mirofish.example.com" />
           </div>
           <div>
-            <label for="apiUrl">API URL</label>
-            <input id="apiUrl" placeholder="https://your-mirofish.example.com/api or :5001" />
+            <label for="apiUrl" data-i18n="apiLabel">API URL</label>
+            <input id="apiUrl" data-i18n-placeholder="apiPlaceholder" placeholder="https://your-mirofish.example.com/api or :5001" />
           </div>
         </div>
         <div class="actions">
-          <button id="saveBtn" class="primary">Save URLs</button>
-          <a id="openBtn" class="btn primary" href="#" target="_blank" rel="noopener noreferrer">Open MiroFish</a>
-          <button id="healthBtn">Check API Health</button>
-          <button id="clearBtn">Clear Saved URLs</button>
+          <button id="saveBtn" class="primary" data-i18n="saveBtn">Save URLs</button>
+          <a id="openBtn" class="btn primary" href="#" target="_blank" rel="noopener noreferrer" data-i18n="openBtn">Open MiroFish</a>
+          <button id="healthBtn" data-i18n="healthBtn">Check API Health</button>
+          <button id="clearBtn" data-i18n="clearBtn">Clear Saved URLs</button>
         </div>
-        <div id="status" class="status">No health check run yet.</div>
-        <div class="hint">
+        <div id="status" class="status" data-i18n="statusNoCheck">No health check run yet.</div>
+        <div class="hint" data-i18n="hint">
           Tip: After first save, this page remembers your URLs in your browser (localStorage).
         </div>
       </div>
 
       <div class="card">
-        <h2 style="margin-top:0;font-size:20px;">Quick links</h2>
+        <h2 style="margin-top:0;font-size:20px;" data-i18n="quickLinks">Quick links</h2>
         <div class="links">
-          <a class="btn" href="https://github.com/cashemerson/Mirofish/tree/main/deploy/always-on" target="_blank" rel="noopener noreferrer">Deployment Guide</a>
-          <a class="btn" href="https://github.com/666ghj/MiroFish" target="_blank" rel="noopener noreferrer">MiroFish Upstream</a>
+          <a class="btn" href="https://github.com/cashemerson/Mirofish/tree/main/deploy/always-on" target="_blank" rel="noopener noreferrer" data-i18n="deployGuide">Deployment Guide</a>
+          <a class="btn" href="https://github.com/666ghj/MiroFish" target="_blank" rel="noopener noreferrer" data-i18n="upstream">MiroFish Upstream</a>
         </div>
       </div>
     </div>
@@ -134,23 +163,111 @@
       const apiInput = document.getElementById("apiUrl");
       const statusEl = document.getElementById("status");
       const openBtn = document.getElementById("openBtn");
+      const langEnBtn = document.getElementById("langEn");
+      const langZhBtn = document.getElementById("langZh");
 
-      const KEY = "mirofish_portal_config_v1";
+      const CFG_KEY = "mirofish_portal_config_v1";
+      const LANG_KEY = "mirofish_portal_lang_v1";
+
+      const I18N = {
+        en: {
+          title: "MiroFish Portal",
+          subtitle: "Save your deployment URL and launch MiroFish from any browser.",
+          frontendLabel: "Frontend URL",
+          frontendPlaceholder: "https://your-mirofish.example.com",
+          apiLabel: "API URL",
+          apiPlaceholder: "https://your-mirofish.example.com/api or :5001",
+          saveBtn: "Save URLs",
+          openBtn: "Open MiroFish",
+          healthBtn: "Check API Health",
+          clearBtn: "Clear Saved URLs",
+          statusNoCheck: "No health check run yet.",
+          hint: "Tip: After first save, this page remembers your URLs in your browser (localStorage).",
+          quickLinks: "Quick links",
+          deployGuide: "Deployment Guide",
+          upstream: "MiroFish Upstream",
+          statusSaved: "Saved. You can now open MiroFish directly.",
+          statusSetApi: "Set API URL first.",
+          statusChecking: "Checking API health...",
+          statusApiFail: "API check failed: HTTP {code}",
+          statusApiHealthy: "API is healthy and responding.",
+          statusApiSuccessFalse: "API responded but success flag was false.",
+          statusApiError: "API check error: {message}",
+          statusCleared: "Cleared saved URLs."
+        },
+        zh: {
+          title: "MiroFish 入口",
+          subtitle: "保存你的部署地址，并从任意浏览器快速启动 MiroFish。",
+          frontendLabel: "前端地址",
+          frontendPlaceholder: "https://你的-mirofish-域名",
+          apiLabel: "API 地址",
+          apiPlaceholder: "https://你的-mirofish-域名/api 或 :5001",
+          saveBtn: "保存地址",
+          openBtn: "打开 MiroFish",
+          healthBtn: "检查 API 健康状态",
+          clearBtn: "清除已保存地址",
+          statusNoCheck: "尚未执行健康检查。",
+          hint: "提示：首次保存后，本页面会在浏览器本地存储这些地址（localStorage）。",
+          quickLinks: "快速链接",
+          deployGuide: "部署指南",
+          upstream: "MiroFish 上游仓库",
+          statusSaved: "保存成功。现在可以直接打开 MiroFish。",
+          statusSetApi: "请先填写 API 地址。",
+          statusChecking: "正在检查 API 健康状态...",
+          statusApiFail: "API 检查失败：HTTP {code}",
+          statusApiHealthy: "API 响应正常。",
+          statusApiSuccessFalse: "API 有响应，但 success 标记为 false。",
+          statusApiError: "API 检查错误：{message}",
+          statusCleared: "已清除保存的地址。"
+        }
+      };
+
+      let currentLang = "en";
+      let statusState = { key: "statusNoCheck", type: "", params: {} };
 
       function normalize(url) {
         if (!url) return "";
         return url.replace(/\/+$/, "");
       }
 
-      function setStatus(msg, type) {
-        statusEl.textContent = msg;
-        statusEl.className = "status";
-        if (type === "ok") statusEl.classList.add("ok");
-        if (type === "bad") statusEl.classList.add("bad");
+      function tr(key, params = {}) {
+        const table = I18N[currentLang] || I18N.en;
+        const fallback = I18N.en[key] || key;
+        const template = table[key] || fallback;
+        return template.replace(/\{(\w+)\}/g, (_, token) => {
+          return Object.prototype.hasOwnProperty.call(params, token) ? String(params[token]) : `{${token}}`;
+        });
       }
 
-      function load() {
-        const raw = localStorage.getItem(KEY);
+      function applyTranslations() {
+        document.documentElement.lang = currentLang;
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const key = el.getAttribute("data-i18n");
+          el.textContent = tr(key);
+        });
+        document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+          const key = el.getAttribute("data-i18n-placeholder");
+          el.setAttribute("placeholder", tr(key));
+        });
+        langEnBtn.classList.toggle("active", currentLang === "en");
+        langZhBtn.classList.toggle("active", currentLang === "zh");
+        renderStatus();
+      }
+
+      function renderStatus() {
+        statusEl.textContent = tr(statusState.key, statusState.params);
+        statusEl.className = "status";
+        if (statusState.type === "ok") statusEl.classList.add("ok");
+        if (statusState.type === "bad") statusEl.classList.add("bad");
+      }
+
+      function setStatus(key, type = "", params = {}) {
+        statusState = { key, type, params };
+        renderStatus();
+      }
+
+      function loadConfig() {
+        const raw = localStorage.getItem(CFG_KEY);
         if (!raw) return;
         try {
           const cfg = JSON.parse(raw);
@@ -160,20 +277,20 @@
         } catch (_) {}
       }
 
-      function save() {
+      function saveConfig() {
         const cfg = {
           frontendUrl: normalize(frontendInput.value),
           apiUrl: normalize(apiInput.value)
         };
-        localStorage.setItem(KEY, JSON.stringify(cfg));
+        localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
         openBtn.href = cfg.frontendUrl || "#";
-        setStatus("Saved. You can now open MiroFish directly.", "ok");
+        setStatus("statusSaved", "ok");
       }
 
       async function healthCheck() {
         const apiBase = normalize(apiInput.value);
         if (!apiBase) {
-          setStatus("Set API URL first.", "bad");
+          setStatus("statusSetApi", "bad");
           return;
         }
 
@@ -181,35 +298,51 @@
           ? `${apiBase}/simulation/history?limit=1`
           : `${apiBase}/api/simulation/history?limit=1`;
 
-        setStatus("Checking API health...", "");
+        setStatus("statusChecking");
         try {
           const res = await fetch(url, { method: "GET" });
           if (!res.ok) {
-            setStatus(`API check failed: HTTP ${res.status}`, "bad");
+            setStatus("statusApiFail", "bad", { code: res.status });
             return;
           }
           const data = await res.json();
           if (data && data.success) {
-            setStatus("API is healthy and responding.", "ok");
+            setStatus("statusApiHealthy", "ok");
           } else {
-            setStatus("API responded but success flag was false.", "bad");
+            setStatus("statusApiSuccessFalse", "bad");
           }
         } catch (err) {
-          setStatus(`API check error: ${err.message}`, "bad");
+          setStatus("statusApiError", "bad", { message: err.message });
         }
       }
 
-      document.getElementById("saveBtn").addEventListener("click", save);
+      function detectDefaultLang() {
+        const saved = localStorage.getItem(LANG_KEY);
+        if (saved === "en" || saved === "zh") return saved;
+        return navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
+      }
+
+      function setLanguage(lang) {
+        currentLang = lang === "zh" ? "zh" : "en";
+        localStorage.setItem(LANG_KEY, currentLang);
+        applyTranslations();
+      }
+
+      document.getElementById("saveBtn").addEventListener("click", saveConfig);
       document.getElementById("healthBtn").addEventListener("click", healthCheck);
       document.getElementById("clearBtn").addEventListener("click", () => {
-        localStorage.removeItem(KEY);
+        localStorage.removeItem(CFG_KEY);
         frontendInput.value = "";
         apiInput.value = "";
         openBtn.href = "#";
-        setStatus("Cleared saved URLs.", "");
+        setStatus("statusCleared");
       });
+      langEnBtn.addEventListener("click", () => setLanguage("en"));
+      langZhBtn.addEventListener("click", () => setLanguage("zh"));
 
-      load();
+      loadConfig();
+      currentLang = detectDefaultLang();
+      applyTranslations();
     </script>
   </body>
 </html>

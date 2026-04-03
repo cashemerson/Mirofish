@@ -10,6 +10,7 @@ This folder contains a hardened, repeatable deployment for running MiroFish cont
 - `scripts/set-portal-auth-hash.sh`: safely writes bcrypt hash into `.env`
 - `scripts/validate-deploy.sh`: preflight validation to catch common config errors
 - `scripts/render-caddyfile.sh`: renders concrete `Caddyfile` from `.env`
+- bilingual portal UI (English/Chinese) with in-page language switch
 
 ## Prerequisites
 
