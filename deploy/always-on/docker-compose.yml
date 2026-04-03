@@ -6,7 +6,7 @@ services:
       mirofish:
         condition: service_healthy
     volumes:
-      - ../../portal:/usr/share/nginx/html:ro
+      - ./portal:/usr/share/nginx/html:ro
       - ./portal-nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - "8080:8080"
