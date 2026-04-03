@@ -9,6 +9,7 @@ This folder contains a hardened, repeatable deployment for running MiroFish cont
 - `Caddyfile.template`: Caddy routes for app, API, and portal
 - `scripts/validate-deploy.sh`: preflight validation to catch common config errors
 - `scripts/render-caddyfile.sh`: renders concrete `Caddyfile` from `.env`
+- `scripts/repair-deploy.sh`: one-command recovery for drifted deployments
 - bilingual portal UI (English/Chinese) with in-page language switch
 
 ## Prerequisites
@@ -47,7 +48,8 @@ Endpoints:
 
 ### 1) DNS
 
-Point both names to your server IP:
+Point all names to your server IP:
+- `your-domain` (apex/root)
 - `app.your-domain`
 - `portal.your-domain`
 
@@ -60,7 +62,7 @@ cp .env.example .env
 
 Edit `.env` and set:
 - `LLM_API_KEY`, `ZEP_API_KEY`
-- `MIROFISH_DOMAIN=app.your-domain`
+- `MIROFISH_DOMAIN=app.your-domain,your-domain`
 - `PORTAL_DOMAIN=portal.your-domain`
 - `ACME_EMAIL=you@example.com`
 
@@ -73,32 +75,34 @@ docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
 docker compose -f docker-compose.yml -f docker-compose.tls.yml ps
 ```
 
-`docker-compose.yml` already injects `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS` from your domain values to prevent Vite host-allowlist 403 errors on custom domains.
+`docker-compose.yml` injects `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS` from domain values to prevent Vite host-allowlist 403 errors on custom domains.
 
 ### 4) Verify externally
 
 ```bash
+curl -I https://your-domain
 curl -I https://app.your-domain
 curl -I https://portal.your-domain
-curl "https://app.your-domain/api/simulation/history?limit=1"
+curl "https://your-domain/api/simulation/history?limit=1"
 ```
 
 Or run the built-in smoke check:
 
 ```bash
 ./scripts/smoke-check.sh \
-  --app https://app.your-domain \
+  --app https://your-domain \
   --portal https://portal.your-domain \
-  --api https://app.your-domain/api/simulation/history?limit=1
+  --api https://your-domain/api/simulation/history?limit=1
 ```
 
 If your deployment has drifted due to copy/paste issues, run one-command repair:
 
 ```bash
-APP_DOMAIN=app.your-domain \
-PORTAL_DOMAIN=portal.your-domain \
-ACME_EMAIL=you@example.com \
-./scripts/repair-deploy.sh
+./scripts/repair-deploy.sh \
+  --app-domain app.your-domain \
+  --root-domain your-domain \
+  --portal-domain portal.your-domain \
+  --acme-email you@example.com
 ```
 
 This script:
@@ -133,15 +137,6 @@ The validator catches:
 - missing required env keys
 - Caddyfile template rendering issues
 - broken Compose syntax
-
----
-
-## Platform alternatives
-
-- Render: `render.yaml`
-- Railway: `railway.json`
-
-These files are templates and may require environment-specific tweaks.
 
 ---
 

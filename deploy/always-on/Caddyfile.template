@@ -1,17 +1,21 @@
-{$MIROFISH_DOMAIN} {
+__APP_HOSTS__ {
   encode zstd gzip
-  tls {$ACME_EMAIL}
+  tls __ACME_EMAIL__
 
   @api path /api/*
   handle @api {
-    reverse_proxy mirofish:5001
+    reverse_proxy mirofish:5001 {
+      header_up Host localhost
+    }
   }
 
-  reverse_proxy mirofish:3000
+  reverse_proxy mirofish:3000 {
+    header_up Host localhost
+  }
 }
 
-{$PORTAL_DOMAIN} {
+__PORTAL_HOSTS__ {
   encode zstd gzip
-  tls {$ACME_EMAIL}
+  tls __ACME_EMAIL__
   reverse_proxy portal:8080
 }

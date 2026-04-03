@@ -28,22 +28,34 @@ read_env_value() {
   printf "%s" "${value}"
 }
 
+join_domains_for_caddy_site() {
+  local value="$1"
+  value="${value//,/ }"
+  value="$(echo "${value}" | tr -s ' ' | sed -E 's/^ +| +$//g')"
+  printf "%s" "${value}"
+}
+
 main() {
   require_file "${ENV_FILE}"
   require_file "${TEMPLATE_FILE}"
 
-  local mirofish_domain portal_domain acme_email
-  mirofish_domain="$(read_env_value "MIROFISH_DOMAIN")"
-  portal_domain="$(read_env_value "PORTAL_DOMAIN")"
+  local app_hosts_raw portal_hosts_raw app_hosts portal_hosts acme_email
+  app_hosts_raw="$(read_env_value "MIROFISH_DOMAIN")"
+  portal_hosts_raw="$(read_env_value "PORTAL_DOMAIN")"
+  app_hosts="$(join_domains_for_caddy_site "${app_hosts_raw}")"
+  portal_hosts="$(join_domains_for_caddy_site "${portal_hosts_raw}")"
   acme_email="$(read_env_value "ACME_EMAIL")"
 
-  awk -v mirofish_domain="${mirofish_domain}" \
-      -v portal_domain="${portal_domain}" \
+  [ -n "${app_hosts}" ] || fail "MIROFISH_DOMAIN resolved to empty host list"
+  [ -n "${portal_hosts}" ] || fail "PORTAL_DOMAIN resolved to empty host list"
+
+  awk -v app_hosts="${app_hosts}" \
+      -v portal_hosts="${portal_hosts}" \
       -v acme_email="${acme_email}" '
       {
-        gsub(/\{\$MIROFISH_DOMAIN\}/, mirofish_domain)
-        gsub(/\{\$PORTAL_DOMAIN\}/, portal_domain)
-        gsub(/\{\$ACME_EMAIL\}/, acme_email)
+        gsub(/__APP_HOSTS__/, app_hosts)
+        gsub(/__PORTAL_HOSTS__/, portal_hosts)
+        gsub(/__ACME_EMAIL__/, acme_email)
         print
       }
     ' "${TEMPLATE_FILE}" > "${TARGET_FILE}"

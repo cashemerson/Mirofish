@@ -46,10 +46,6 @@ while [ "${#}" -gt 0 ]; do
   shift
 done
 
-warn() {
-  echo "WARN: $*" >&2
-}
-
 require_file() {
   local file="$1"
   [ -f "${file}" ] || fail "Missing required file: ${file}"
@@ -67,23 +63,10 @@ read_var() {
   grep -E "^${name}=" "${ENV_FILE}" | tail -n 1 | sed -E "s/^${name}=//"
 }
 
-strip_outer_single_quotes() {
-  local value="$1"
-  if [[ "${value}" == \'*\' ]]; then
-    value="${value:1}"
-  fi
-  if [[ "${value}" == *\' ]]; then
-    value="${value::-1}"
-  fi
-  printf "%s" "${value}"
-}
-
-validate_domain() {
+validate_domain_list() {
   local name="$1"
   local value="$2"
-  if [[ -z "${value}" ]]; then
-    fail "${name} cannot be empty"
-  fi
+  [ -n "${value}" ] || fail "${name} cannot be empty"
   if [[ "${value}" == *" "* ]]; then
     fail "${name} contains spaces: ${value}"
   fi
@@ -121,13 +104,14 @@ main() {
       require_var "MIROFISH_DOMAIN"
       require_var "PORTAL_DOMAIN"
       require_var "ACME_EMAIL"
-      local app_domain portal_domain acme_email
-      app_domain="$(read_var "MIROFISH_DOMAIN")"
-      portal_domain="$(read_var "PORTAL_DOMAIN")"
+
+      local app_domains portal_domains acme_email
+      app_domains="$(read_var "MIROFISH_DOMAIN")"
+      portal_domains="$(read_var "PORTAL_DOMAIN")"
       acme_email="$(read_var "ACME_EMAIL")"
 
-      validate_domain "MIROFISH_DOMAIN" "${app_domain}"
-      validate_domain "PORTAL_DOMAIN" "${portal_domain}"
+      validate_domain_list "MIROFISH_DOMAIN" "${app_domains}"
+      validate_domain_list "PORTAL_DOMAIN" "${portal_domains}"
 
       (
         cd "${ROOT_DIR}"
@@ -140,9 +124,9 @@ main() {
       ) || fail "Caddyfile render failed"
 
       echo "Deploy preflight checks passed (${MODE} mode)."
-      echo "  App domain:    ${app_domain}"
-      echo "  Portal domain: ${portal_domain}"
-      echo "  ACME email:    ${acme_email}"
+      echo "  App domains:    ${app_domains}"
+      echo "  Portal domains: ${portal_domains}"
+      echo "  ACME email:     ${acme_email}"
       ;;
     *)
       fail "Unknown mode '${MODE}'. Use one of: base, tls, all"

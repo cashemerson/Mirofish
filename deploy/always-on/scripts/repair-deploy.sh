@@ -5,9 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOY_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ENV_FILE="${DEPLOY_DIR}/.env"
 APP_DOMAIN_DEFAULT="app.cesimulation.it.com"
+ROOT_DOMAIN_DEFAULT="cesimulation.it.com"
 PORTAL_DOMAIN_DEFAULT="portal.cesimulation.it.com"
 ACME_EMAIL_DEFAULT="you@example.com"
 APP_DOMAIN=""
+ROOT_DOMAIN=""
 PORTAL_DOMAIN=""
 ACME_EMAIL=""
 
@@ -32,7 +34,8 @@ ensure_env_var() {
   if grep -q "^${key}=" "${ENV_FILE}"; then
     sed -i "s|^${key}=.*|${key}=${value}|" "${ENV_FILE}"
   else
-    printf "%s=%s\n" "${key}" "${value}" >> "${ENV_FILE}"
+    printf "%s=%s
+" "${key}" "${value}" >> "${ENV_FILE}"
   fi
 }
 
@@ -43,51 +46,19 @@ Usage:
 
 Options:
   --app-domain <domain>      App host (default: app.cesimulation.it.com)
+  --root-domain <domain>     Root/apex host routed to app (default: cesimulation.it.com)
   --portal-domain <domain>   Portal host (default: portal.cesimulation.it.com)
   --acme-email <email>       ACME email for TLS
   -h, --help                 Show help
 EOF
 }
 
-read_env_value() {
-  local key="$1"
-  local line value
-  line="$(grep -E "^${key}=" "${ENV_FILE}" | tail -n 1 || true)"
-  [ -n "${line}" ] || fail "Missing ${key} in ${ENV_FILE}"
-  value="${line#*=}"
-  if [[ "${value}" == \'*\' && "${value}" == *\' ]]; then
-    value="${value:1:${#value}-2}"
-  fi
-  printf "%s" "${value}"
-}
-
-prompt_if_empty() {
-  local var_name="$1"
-  local prompt="$2"
-  local is_secret="${3:-false}"
-  local current="${!var_name:-}"
-  if [ -n "${current}" ]; then
-    return
-  fi
-  if [ "${is_secret}" = "true" ]; then
-    read -r -s -p "${prompt}: " current
-    echo
-  else
-    read -r -p "${prompt}: " current
-  fi
-  [ -n "${current}" ] || fail "${var_name} cannot be empty"
-  printf -v "${var_name}" "%s" "${current}"
-}
-
 main() {
   require_tool docker
   require_tool curl
-  require_tool awk
   require_file "${DEPLOY_DIR}/docker-compose.yml"
   require_file "${DEPLOY_DIR}/Caddyfile.template"
   require_file "${DEPLOY_DIR}/portal-nginx.conf"
-  require_file "${DEPLOY_DIR}/scripts/render-caddyfile.sh"
-  require_file "${DEPLOY_DIR}/scripts/validate-deploy.sh"
 
   mkdir -p "${DEPLOY_DIR}/portal" "${DEPLOY_DIR}/uploads"
 
@@ -97,6 +68,11 @@ main() {
         shift
         [ "${#}" -gt 0 ] || fail "Missing value for --app-domain"
         APP_DOMAIN="${1}"
+        ;;
+      --root-domain)
+        shift
+        [ "${#}" -gt 0 ] || fail "Missing value for --root-domain"
+        ROOT_DOMAIN="${1}"
         ;;
       --portal-domain)
         shift
@@ -120,19 +96,19 @@ main() {
   done
 
   APP_DOMAIN="${APP_DOMAIN:-$APP_DOMAIN_DEFAULT}"
+  ROOT_DOMAIN="${ROOT_DOMAIN:-$ROOT_DOMAIN_DEFAULT}"
   PORTAL_DOMAIN="${PORTAL_DOMAIN:-$PORTAL_DOMAIN_DEFAULT}"
   ACME_EMAIL="${ACME_EMAIL:-$ACME_EMAIL_DEFAULT}"
+
   if [ ! -f "${ENV_FILE}" ]; then
     [ -f "${DEPLOY_DIR}/.env.example" ] || fail ".env missing and .env.example not found"
     cp "${DEPLOY_DIR}/.env.example" "${ENV_FILE}"
   fi
 
-  # Keep existing provider keys from .env; only normalize deployment vars.
-  ensure_env_var "MIROFISH_DOMAIN" "${APP_DOMAIN}"
+  ensure_env_var "MIROFISH_DOMAIN" "${APP_DOMAIN},${ROOT_DOMAIN}"
   ensure_env_var "PORTAL_DOMAIN" "${PORTAL_DOMAIN}"
   ensure_env_var "ACME_EMAIL" "${ACME_EMAIL}"
 
-  # Replace service definition with hardened compose baseline.
   cat > "${DEPLOY_DIR}/docker-compose.yml" <<EOF
 services:
   portal:
@@ -155,7 +131,7 @@ services:
       - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=\${MIROFISH_DOMAIN:-localhost},\${PORTAL_DOMAIN:-localhost},localhost,127.0.0.1
     volumes:
       - ./uploads:/app/backend/uploads
- 
+
   caddy:
     image: caddy:2.8-alpine
     container_name: mirofish-caddy
@@ -198,7 +174,7 @@ EOF
   fi
 
   cat > "${DEPLOY_DIR}/Caddyfile" <<EOF
-${APP_DOMAIN} {
+${APP_DOMAIN}, ${ROOT_DOMAIN} {
   encode zstd gzip
   tls ${ACME_EMAIL}
   @api path /api/*
@@ -224,8 +200,7 @@ EOF
   docker compose -f "${DEPLOY_DIR}/docker-compose.yml" ps
 
   if [ -x "${DEPLOY_DIR}/scripts/smoke-check.sh" ]; then
-    APP_URL="https://${APP_DOMAIN}" PORTAL_URL="https://${PORTAL_DOMAIN}" \
-      "${DEPLOY_DIR}/scripts/smoke-check.sh" || true
+    APP_URL="https://${ROOT_DOMAIN}" PORTAL_URL="https://${PORTAL_DOMAIN}"       "${DEPLOY_DIR}/scripts/smoke-check.sh" || true
   fi
 }
 
