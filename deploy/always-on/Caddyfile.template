@@ -13,8 +13,5 @@
 {$PORTAL_DOMAIN} {
   encode zstd gzip
   tls {$ACME_EMAIL}
-  basicauth {
-    {$PORTAL_BASIC_AUTH_USER} {$PORTAL_BASIC_AUTH_HASH}
-  }
   reverse_proxy portal:8080
 }

@@ -121,27 +121,13 @@ main() {
       require_var "MIROFISH_DOMAIN"
       require_var "PORTAL_DOMAIN"
       require_var "ACME_EMAIL"
-      require_var "PORTAL_BASIC_AUTH_USER"
-      require_var "PORTAL_BASIC_AUTH_HASH"
-
-      local app_domain portal_domain acme_email auth_user auth_hash_raw auth_hash
+      local app_domain portal_domain acme_email
       app_domain="$(read_var "MIROFISH_DOMAIN")"
       portal_domain="$(read_var "PORTAL_DOMAIN")"
       acme_email="$(read_var "ACME_EMAIL")"
-      auth_user="$(read_var "PORTAL_BASIC_AUTH_USER")"
-      auth_hash_raw="$(read_var "PORTAL_BASIC_AUTH_HASH")"
-      auth_hash="$(strip_outer_single_quotes "${auth_hash_raw}")"
 
       validate_domain "MIROFISH_DOMAIN" "${app_domain}"
       validate_domain "PORTAL_DOMAIN" "${portal_domain}"
-
-      if [[ "${auth_hash}" != \$2a\$* && "${auth_hash}" != \$2b\$* && "${auth_hash}" != \$2y\$* ]]; then
-        fail "PORTAL_BASIC_AUTH_HASH does not look like a bcrypt hash."
-      fi
-
-      if [[ "${auth_hash_raw}" != *'$'* ]]; then
-        warn "PORTAL_BASIC_AUTH_HASH does not contain '$'; ensure this is an actual bcrypt value."
-      fi
 
       (
         cd "${ROOT_DIR}"
@@ -157,7 +143,6 @@ main() {
       echo "  App domain:    ${app_domain}"
       echo "  Portal domain: ${portal_domain}"
       echo "  ACME email:    ${acme_email}"
-      echo "  Auth user:     ${auth_user}"
       ;;
     *)
       fail "Unknown mode '${MODE}'. Use one of: base, tls, all"

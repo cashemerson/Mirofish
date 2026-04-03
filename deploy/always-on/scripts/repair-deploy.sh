@@ -6,13 +6,10 @@ DEPLOY_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ENV_FILE="${DEPLOY_DIR}/.env"
 APP_DOMAIN_DEFAULT="app.cesimulation.it.com"
 PORTAL_DOMAIN_DEFAULT="portal.cesimulation.it.com"
-ADMIN_USER_DEFAULT="admin"
 ACME_EMAIL_DEFAULT="you@example.com"
 APP_DOMAIN=""
 PORTAL_DOMAIN=""
-ADMIN_USER=""
 ACME_EMAIL=""
-PORTAL_PASSWORD=""
 
 fail() {
   echo "ERROR: $*" >&2
@@ -48,8 +45,6 @@ Options:
   --app-domain <domain>      App host (default: app.cesimulation.it.com)
   --portal-domain <domain>   Portal host (default: portal.cesimulation.it.com)
   --acme-email <email>       ACME email for TLS
-  --portal-user <username>   Portal basic auth username (default: admin)
-  --portal-password <pass>   Portal basic auth password (if omitted, prompt)
   -h, --help                 Show help
 EOF
 }
@@ -113,16 +108,6 @@ main() {
         [ "${#}" -gt 0 ] || fail "Missing value for --acme-email"
         ACME_EMAIL="${1}"
         ;;
-      --portal-user)
-        shift
-        [ "${#}" -gt 0 ] || fail "Missing value for --portal-user"
-        ADMIN_USER="${1}"
-        ;;
-      --portal-password)
-        shift
-        [ "${#}" -gt 0 ] || fail "Missing value for --portal-password"
-        PORTAL_PASSWORD="${1}"
-        ;;
       -h|--help)
         usage
         exit 0
@@ -137,12 +122,6 @@ main() {
   APP_DOMAIN="${APP_DOMAIN:-$APP_DOMAIN_DEFAULT}"
   PORTAL_DOMAIN="${PORTAL_DOMAIN:-$PORTAL_DOMAIN_DEFAULT}"
   ACME_EMAIL="${ACME_EMAIL:-$ACME_EMAIL_DEFAULT}"
-  ADMIN_USER="${ADMIN_USER:-$ADMIN_USER_DEFAULT}"
-
-  if [ -z "${PORTAL_PASSWORD}" ]; then
-    prompt_if_empty PORTAL_PASSWORD "Portal admin password" true
-  fi
-
   if [ ! -f "${ENV_FILE}" ]; then
     [ -f "${DEPLOY_DIR}/.env.example" ] || fail ".env missing and .env.example not found"
     cp "${DEPLOY_DIR}/.env.example" "${ENV_FILE}"
@@ -152,21 +131,6 @@ main() {
   ensure_env_var "MIROFISH_DOMAIN" "${APP_DOMAIN}"
   ensure_env_var "PORTAL_DOMAIN" "${PORTAL_DOMAIN}"
   ensure_env_var "ACME_EMAIL" "${ACME_EMAIL}"
-  ensure_env_var "PORTAL_BASIC_AUTH_USER" "${ADMIN_USER}"
-
-  HASH="$(docker run --rm caddy:2.8-alpine caddy hash-password --plaintext "${PORTAL_PASSWORD}")"
-  awk -v h="${HASH}" '
-BEGIN{done=0}
-$0 ~ /^PORTAL_BASIC_AUTH_HASH=/ {
-  if (!done) { print "PORTAL_BASIC_AUTH_HASH='\''" h "'\''"; done=1 }
-  next
-}
-{ print }
-END {
-  if (!done) print "PORTAL_BASIC_AUTH_HASH='\''" h "'\''"
-}
-' "${ENV_FILE}" > "${ENV_FILE}.tmp"
-  mv "${ENV_FILE}.tmp" "${ENV_FILE}"
 
   # Replace service definition with hardened compose baseline.
   cat > "${DEPLOY_DIR}/docker-compose.yml" <<EOF
@@ -251,9 +215,6 @@ ${APP_DOMAIN} {
 ${PORTAL_DOMAIN} {
   encode zstd gzip
   tls ${ACME_EMAIL}
-  basicauth {
-    ${ADMIN_USER} ${HASH}
-  }
   reverse_proxy portal:8080
 }
 EOF
@@ -263,7 +224,7 @@ EOF
   docker compose -f "${DEPLOY_DIR}/docker-compose.yml" ps
 
   if [ -x "${DEPLOY_DIR}/scripts/smoke-check.sh" ]; then
-    APP_URL="https://${APP_DOMAIN}" PORTAL_URL="https://${PORTAL_DOMAIN}" ADMIN_USER="${ADMIN_USER}" \
+    APP_URL="https://${APP_DOMAIN}" PORTAL_URL="https://${PORTAL_DOMAIN}" \
       "${DEPLOY_DIR}/scripts/smoke-check.sh" || true
   fi
 }

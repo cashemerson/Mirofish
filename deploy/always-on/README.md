@@ -6,8 +6,7 @@ This folder contains a hardened, repeatable deployment for running MiroFish cont
 
 - `docker-compose.yml`: base stack (`mirofish` + launcher `portal`)
 - `docker-compose.tls.yml`: HTTPS reverse proxy via Caddy (Let's Encrypt)
-- `Caddyfile.template`: Caddy routes for app, API, and protected portal
-- `scripts/set-portal-auth-hash.sh`: safely writes bcrypt hash into `.env`
+- `Caddyfile.template`: Caddy routes for app, API, and portal
 - `scripts/validate-deploy.sh`: preflight validation to catch common config errors
 - `scripts/render-caddyfile.sh`: renders concrete `Caddyfile` from `.env`
 - bilingual portal UI (English/Chinese) with in-page language switch
@@ -44,7 +43,7 @@ Endpoints:
 
 ---
 
-## Option 2: custom domains + HTTPS + portal auth (recommended)
+## Option 2: custom domains + HTTPS (recommended)
 
 ### 1) DNS
 
@@ -64,17 +63,8 @@ Edit `.env` and set:
 - `MIROFISH_DOMAIN=app.your-domain`
 - `PORTAL_DOMAIN=portal.your-domain`
 - `ACME_EMAIL=you@example.com`
-- `PORTAL_BASIC_AUTH_USER=admin` (or your preferred username)
 
-### 3) Set basic-auth password safely
-
-Use the helper script so bcrypt `$` characters are written correctly:
-
-```bash
-./scripts/set-portal-auth-hash.sh "your-strong-password"
-```
-
-### 4) Validate and start
+### 3) Validate and start
 
 ```bash
 ./scripts/validate-deploy.sh --mode tls
@@ -85,23 +75,21 @@ docker compose -f docker-compose.yml -f docker-compose.tls.yml ps
 
 `docker-compose.yml` already injects `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS` from your domain values to prevent Vite host-allowlist 403 errors on custom domains.
 
-### 5) Verify externally
+### 4) Verify externally
 
 ```bash
 curl -I https://app.your-domain
 curl -I https://portal.your-domain
-curl -u admin:your-strong-password "https://portal.your-domain"
 curl "https://app.your-domain/api/simulation/history?limit=1"
 ```
 
-Or run the built-in smoke check (prompts for portal password):
+Or run the built-in smoke check:
 
 ```bash
 ./scripts/smoke-check.sh \
   --app https://app.your-domain \
   --portal https://portal.your-domain \
-  --api https://app.your-domain/api/simulation/history?limit=1 \
-  --user admin
+  --api https://app.your-domain/api/simulation/history?limit=1
 ```
 
 If your deployment has drifted due to copy/paste issues, run one-command repair:
@@ -110,7 +98,6 @@ If your deployment has drifted due to copy/paste issues, run one-command repair:
 APP_DOMAIN=app.your-domain \
 PORTAL_DOMAIN=portal.your-domain \
 ACME_EMAIL=you@example.com \
-ADMIN_USER=admin \
 ./scripts/repair-deploy.sh
 ```
 
@@ -119,7 +106,6 @@ This script:
 - rewrites `docker-compose.yml` to a known-good config
 - rewrites `portal-nginx.conf` to a known-good config
 - updates Vite allowed hosts for custom domains
-- optionally rotates portal password/hash safely
 - renders a concrete `Caddyfile`
 - validates compose and restarts the stack
 - prints status and endpoint checks
@@ -144,16 +130,9 @@ Run preflight and regenerate Caddyfile:
 ```
 
 The validator catches:
-- weak or malformed `PORTAL_BASIC_AUTH_HASH` values
 - missing required env keys
 - Caddyfile template rendering issues
 - broken Compose syntax
-
-### Why this avoids the `$2a$...` Docker Compose warning
-
-- `PORTAL_BASIC_AUTH_HASH` is stored in `.env` with single quotes by `set-portal-auth-hash.sh`
-- `render-caddyfile.sh` resolves variables before Caddy starts
-- Caddy reads `./Caddyfile` directly, so runtime env interpolation is no longer involved
 
 ---
 

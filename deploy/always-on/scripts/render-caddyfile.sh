@@ -32,26 +32,18 @@ main() {
   require_file "${ENV_FILE}"
   require_file "${TEMPLATE_FILE}"
 
-  local mirofish_domain portal_domain acme_email auth_user auth_hash
+  local mirofish_domain portal_domain acme_email
   mirofish_domain="$(read_env_value "MIROFISH_DOMAIN")"
   portal_domain="$(read_env_value "PORTAL_DOMAIN")"
   acme_email="$(read_env_value "ACME_EMAIL")"
-  auth_user="$(read_env_value "PORTAL_BASIC_AUTH_USER")"
-  auth_hash="$(read_env_value "PORTAL_BASIC_AUTH_HASH")"
-
-  [ -n "${auth_hash}" ] || fail "PORTAL_BASIC_AUTH_HASH resolved to an empty value"
 
   awk -v mirofish_domain="${mirofish_domain}" \
       -v portal_domain="${portal_domain}" \
-      -v acme_email="${acme_email}" \
-      -v auth_user="${auth_user}" \
-      -v auth_hash="${auth_hash}" '
+      -v acme_email="${acme_email}" '
       {
         gsub(/\{\$MIROFISH_DOMAIN\}/, mirofish_domain)
         gsub(/\{\$PORTAL_DOMAIN\}/, portal_domain)
         gsub(/\{\$ACME_EMAIL\}/, acme_email)
-        gsub(/\{\$PORTAL_BASIC_AUTH_USER\}/, auth_user)
-        gsub(/\{\$PORTAL_BASIC_AUTH_HASH\}/, auth_hash)
         print
       }
     ' "${TEMPLATE_FILE}" > "${TARGET_FILE}"
