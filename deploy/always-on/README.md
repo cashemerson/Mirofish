@@ -10,6 +10,7 @@ This folder contains a hardened, repeatable deployment for running MiroFish cont
 - `scripts/validate-deploy.sh`: preflight validation to catch common config errors
 - `scripts/render-caddyfile.sh`: renders concrete `Caddyfile` from `.env`
 - `scripts/repair-deploy.sh`: one-command recovery for drifted deployments
+- `scripts/diagnose-network-error.sh`: targeted checks for frontend "Network Error" paths
 - bilingual portal UI (English/Chinese) with in-page language switch
 
 ## Prerequisites
@@ -65,6 +66,11 @@ Edit `.env` and set:
 - `MIROFISH_DOMAIN=app.your-domain,your-domain`
 - `PORTAL_DOMAIN=portal.your-domain`
 - `ACME_EMAIL=you@example.com`
+- optional but recommended for large ontology/doc uploads:
+  - `API_MAX_UPLOAD_SIZE=200MB`
+  - `API_RESPONSE_HEADER_TIMEOUT=600s`
+  - `API_READ_TIMEOUT=600s`
+  - `API_WRITE_TIMEOUT=600s`
 
 ### 3) Validate and start
 
@@ -94,6 +100,17 @@ Or run the built-in smoke check:
   --portal https://portal.your-domain \
   --api https://your-domain/api/simulation/history?limit=1
 ```
+
+If the UI shows `Network Error` during file upload or ontology generation, run:
+
+```bash
+./scripts/diagnose-network-error.sh \
+  --app https://your-domain \
+  --portal https://portal.your-domain \
+  --api-path /api/graph/ontology/generate
+```
+
+This script verifies DNS, TLS reachability, container health, and endpoint responses, then prints the most relevant logs from `caddy` and `mirofish`.
 
 If your deployment has drifted due to copy/paste issues, run one-command repair:
 

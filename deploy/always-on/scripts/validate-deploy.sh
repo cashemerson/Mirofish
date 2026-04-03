@@ -104,7 +104,6 @@ main() {
       require_var "MIROFISH_DOMAIN"
       require_var "PORTAL_DOMAIN"
       require_var "ACME_EMAIL"
-
       local app_domains portal_domains acme_email
       app_domains="$(read_var "MIROFISH_DOMAIN")"
       portal_domains="$(read_var "PORTAL_DOMAIN")"

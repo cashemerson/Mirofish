@@ -4,8 +4,10 @@ services:
     container_name: mirofish-caddy
     init: true
     depends_on:
-      - portal
-      - mirofish
+      portal:
+        condition: service_healthy
+      mirofish:
+        condition: service_healthy
     ports:
       - "80:80"
       - "443:443"

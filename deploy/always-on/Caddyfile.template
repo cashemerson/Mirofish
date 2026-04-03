@@ -4,13 +4,27 @@ __APP_HOSTS__ {
 
   @api path /api/*
   handle @api {
+    request_body {
+      max_size __API_MAX_UPLOAD_SIZE__
+    }
     reverse_proxy mirofish:5001 {
       header_up Host localhost
+      flush_interval -1
+      transport http {
+        dial_timeout 10s
+        response_header_timeout __API_RESPONSE_HEADER_TIMEOUT__
+        read_timeout __API_READ_TIMEOUT__
+        write_timeout __API_WRITE_TIMEOUT__
+      }
     }
   }
 
   reverse_proxy mirofish:3000 {
     header_up Host localhost
+    transport http {
+      dial_timeout 10s
+      response_header_timeout 120s
+    }
   }
 }
 

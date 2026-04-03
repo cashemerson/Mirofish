@@ -108,6 +108,10 @@ main() {
   ensure_env_var "MIROFISH_DOMAIN" "${APP_DOMAIN},${ROOT_DOMAIN}"
   ensure_env_var "PORTAL_DOMAIN" "${PORTAL_DOMAIN}"
   ensure_env_var "ACME_EMAIL" "${ACME_EMAIL}"
+  ensure_env_var "API_MAX_UPLOAD_SIZE" "64MB"
+  ensure_env_var "API_RESPONSE_HEADER_TIMEOUT" "600s"
+  ensure_env_var "API_READ_TIMEOUT" "600s"
+  ensure_env_var "API_WRITE_TIMEOUT" "600s"
 
   cat > "${DEPLOY_DIR}/docker-compose.yml" <<EOF
 services:
@@ -116,10 +120,17 @@ services:
     container_name: mirofish-portal
     restart: unless-stopped
     depends_on:
-      - mirofish
+      mirofish:
+        condition: service_healthy
     volumes:
       - ./portal:/usr/share/nginx/html:ro
       - ./portal-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
 
   mirofish:
     image: ghcr.io/666ghj/mirofish:latest
@@ -131,14 +142,22 @@ services:
       - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=\${MIROFISH_DOMAIN:-localhost},\${PORTAL_DOMAIN:-localhost},localhost,127.0.0.1
     volumes:
       - ./uploads:/app/backend/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5001/api/simulation/history?limit=1 || exit 1"]
+      interval: 20s
+      timeout: 8s
+      retries: 10
+      start_period: 45s
 
   caddy:
     image: caddy:2.8-alpine
     container_name: mirofish-caddy
     restart: unless-stopped
     depends_on:
-      - portal
-      - mirofish
+      portal:
+        condition: service_healthy
+      mirofish:
+        condition: service_healthy
     ports:
       - "80:80"
       - "443:443"
@@ -147,6 +166,12 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2019/config/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
 
 volumes:
   caddy_data:
@@ -179,12 +204,26 @@ ${APP_DOMAIN}, ${ROOT_DOMAIN} {
   tls ${ACME_EMAIL}
   @api path /api/*
   handle @api {
+    request_body {
+      max_size ${API_MAX_UPLOAD_SIZE:-64MB}
+    }
     reverse_proxy mirofish:5001 {
       header_up Host localhost
+      flush_interval -1
+      transport http {
+        dial_timeout 10s
+        response_header_timeout ${API_RESPONSE_HEADER_TIMEOUT:-600s}
+        read_timeout ${API_READ_TIMEOUT:-600s}
+        write_timeout ${API_WRITE_TIMEOUT:-600s}
+      }
     }
   }
   reverse_proxy mirofish:3000 {
     header_up Host localhost
+    transport http {
+      dial_timeout 10s
+      response_header_timeout 120s
+    }
   }
 }
 
