@@ -72,6 +72,26 @@ validate_domain_list() {
   fi
 }
 
+validate_not_placeholder_domains() {
+  local name="$1"
+  local value="$2"
+  local IFS=','
+  local domain
+  for domain in ${value}; do
+    if [[ "${domain}" == *"example.com"* || "${domain}" == *"your-domain"* || "${domain}" == *"<"* || "${domain}" == *">"* ]]; then
+      fail "${name} contains placeholder domain '${domain}'. Set real public DNS names in ${ENV_FILE}."
+    fi
+  done
+}
+
+validate_acme_email() {
+  local value="$1"
+  [ -n "${value}" ] || fail "ACME_EMAIL cannot be empty"
+  if [[ "${value}" != *"@"* || "${value}" == *"example.com"* || "${value}" == "you@"* || "${value}" == *"<"* || "${value}" == *">"* ]]; then
+    fail "ACME_EMAIL appears to be a placeholder ('${value}'). Set a real email in ${ENV_FILE}."
+  fi
+}
+
 main() {
   require_file "${ENV_FILE}"
   require_file "${BASE_COMPOSE}"
@@ -111,6 +131,9 @@ main() {
 
       validate_domain_list "MIROFISH_DOMAIN" "${app_domains}"
       validate_domain_list "PORTAL_DOMAIN" "${portal_domains}"
+      validate_not_placeholder_domains "MIROFISH_DOMAIN" "${app_domains}"
+      validate_not_placeholder_domains "PORTAL_DOMAIN" "${portal_domains}"
+      validate_acme_email "${acme_email}"
 
       (
         cd "${ROOT_DIR}"
