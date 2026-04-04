@@ -87,7 +87,7 @@ validate_not_placeholder_domains() {
 validate_acme_email() {
   local value="$1"
   [ -n "${value}" ] || fail "ACME_EMAIL cannot be empty"
-  if [[ "${value}" != *"@"* || "${value}" == *"example.com"* || "${value}" == "you@"* || "${value}" == *"<"* || "${value}" == *">"* ]]; then
+  if [[ "${value}" != *"@"* || "${value}" == *"example.com"* || "${value}" == you@* || "${value}" == *"<"* || "${value}" == *">"* ]]; then
     fail "ACME_EMAIL appears to be a placeholder ('${value}'). Set a real email in ${ENV_FILE}."
   fi
 }
