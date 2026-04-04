@@ -308,7 +308,7 @@
 function inferAppOrigin() {
   var h = window.location.hostname;
   if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:3000';
-  if (h.indexOf('portal.') === 0) return window.location.protocol + '//' + h.replace(/^portal\./, '');
+  if (h.startsWith('portal.')) return window.location.protocol + '//' + h.replace(/^portal\./, '');
   return window.location.origin;
 }
 document.querySelectorAll('[data-app-link]').forEach(function(el) {
