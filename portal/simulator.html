@@ -14,7 +14,7 @@
       --mono: 'JetBrains Mono','Fira Code',monospace;
       --font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
     }
-    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; }
+    body { font-family: var(--font), system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
     .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
     a { color: var(--accent); text-decoration: none; }
 
@@ -68,21 +68,21 @@
     label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
     input, select, textarea {
       width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border);
-      border-radius: var(--rs); color: var(--text); font-size: 14px; font-family: var(--font);
+      border-radius: var(--rs); color: var(--text); font-size: 14px; font-family: var(--font), system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       transition: border-color .15s; margin-bottom: 14px;
     }
     input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
     textarea { resize: vertical; min-height: 80px; }
     select { cursor: pointer; }
 
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: var(--rs); font-size: 14px; font-weight: 600; border: 1px solid var(--border); cursor: pointer; font-family: var(--font); transition: all .15s; background: var(--card); color: var(--text); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: var(--rs); font-size: 14px; font-weight: 600; border: 1px solid var(--border); cursor: pointer; font-family: var(--font), system-ui, -apple-system, Segoe UI, Roboto, sans-serif; transition: all .15s; background: var(--card); color: var(--text); }
     .btn:hover { background: var(--hover); }
     .btn-p { background: var(--accent); color: #fff; border-color: var(--accent); }
     .btn-p:hover { opacity: .9; }
     .btn-g { background: var(--green); color: #fff; border-color: var(--green); }
     .btn-r { background: var(--red); color: #fff; border-color: var(--red); }
 
-    .result-box { background: #0a0e14; border: 1px solid var(--border); border-radius: var(--rs); padding: 16px; font-family: var(--mono); font-size: 13px; color: var(--muted); max-height: 500px; overflow-y: auto; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+    .result-box { background: #0a0e14; border: 1px solid var(--border); border-radius: var(--rs); padding: 16px; font-family: var(--mono), ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--muted); max-height: 500px; overflow-y: auto; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
     .g { color: var(--green); } .r { color: var(--red); } .o { color: var(--orange); } .b { color: var(--accent); } .p { color: var(--purple); } .d { color: var(--dim); }
 
     .wizard-steps { display: flex; gap: 0; margin-bottom: 32px; }
@@ -101,15 +101,16 @@
 
     footer { border-top: 1px solid var(--border); padding: 40px 0; text-align: center; color: var(--dim); font-size: 13px; }
   </style>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" /></noscript>
 </head>
 <body>
 
 <nav>
   <div class="inner">
     <a href="index.html" class="logo"><span class="icon">&#x1F41F;</span> CE Simulation</a>
-    <button class="mobile-toggle" onclick="document.querySelector('.links').classList.toggle('open')" aria-label="Menu">&#9776;</button>
-    <div class="links">
+    <button id="mobileMenuButton" class="mobile-toggle" aria-label="Toggle navigation menu" aria-controls="primaryNavLinks" aria-expanded="false">&#9776;</button>
+    <div class="links" id="primaryNavLinks">
       <a href="index.html">Home</a>
       <a href="report.html">Intelligence</a>
       <a href="index.html#api">API</a>
@@ -310,14 +311,14 @@
 function inferAppOrigin() {
   var h = window.location.hostname;
   if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:3000';
-  if (h.startsWith('portal.')) return window.location.protocol + '//' + h.replace(/^portal\./, '');
+  if (h.startsWith('portal.')) { var rootHost = h.replace(/^portal\./, ''); if (rootHost) return window.location.protocol + '//' + rootHost; }
   return window.location.origin;
 }
 
 var API = (function() {
   var h = window.location.hostname;
   if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:5001';
-  if (h.startsWith('portal.')) return window.location.protocol + '//' + h.replace(/^portal\./, '');
+  if (h.startsWith('portal.')) { var rootHost = h.replace(/^portal\./, ''); if (rootHost) return window.location.protocol + '//' + rootHost; }
   return window.location.origin;
 })();
 
@@ -325,13 +326,6 @@ document.querySelectorAll('[data-app-link]').forEach(function(el) {
   el.href = inferAppOrigin();
 });
 
-// Close mobile menu after navigation click for better UX on small screens
-document.querySelectorAll('nav .links a').forEach(function(a) {
-  a.addEventListener('click', function() {
-    var links = document.querySelector('nav .links');
-    if (links && links.classList.contains('open')) links.classList.remove('open');
-  });
-});
 
 function esc(s) { if (s == null) return ''; var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 function timedFetch(url, opts, ms) {
@@ -741,6 +735,31 @@ function calcVig() {
 
 calcEV();
 calcVig();
+
+(function setupMobileMenu() {
+  var button = document.getElementById('mobileMenuButton');
+  var links = document.getElementById('primaryNavLinks') || document.querySelector('nav .links');
+  if (!button || !links) return;
+  function closeMenu() {
+    links.classList.remove('open');
+    button.setAttribute('aria-expanded', 'false');
+  }
+  function toggleMenu() {
+    var isOpen = links.classList.toggle('open');
+    button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+  button.addEventListener('click', toggleMenu);
+  document.querySelectorAll('nav .links a').forEach(function(a) {
+    a.addEventListener('click', closeMenu);
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeMenu();
+  });
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 640) closeMenu();
+  });
+})();
+
 </script>
 
 </body>

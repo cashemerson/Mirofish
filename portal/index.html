@@ -37,7 +37,7 @@
     }
 
     body {
-      font-family: var(--font);
+      font-family: var(--font), system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       background: var(--bg-base);
       color: var(--text-primary);
       line-height: 1.6;
@@ -120,7 +120,7 @@
       font-size: 15px; font-weight: 600;
       text-decoration: none; border: 1px solid var(--border);
       transition: all .15s; cursor: pointer;
-      font-family: var(--font);
+      font-family: var(--font), system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     }
     .btn-primary {
       background: var(--accent); color: #fff; border-color: var(--accent);
@@ -252,11 +252,11 @@
     .console-dot.g { background: #28c840; }
     .console-title {
       margin-left: 8px; font-size: 12px; color: var(--text-muted);
-      font-family: var(--mono);
+      font-family: var(--mono), ui-monospace, SFMono-Regular, Menlo, monospace;
     }
     .console-body {
       padding: 20px;
-      font-family: var(--mono);
+      font-family: var(--mono), ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size: 13px;
       line-height: 1.8;
       color: var(--text-secondary);
@@ -298,7 +298,7 @@
       width: 100%; padding: 12px 16px;
       background: var(--bg-card); border: 1px solid var(--border);
       border-radius: var(--radius-sm); color: var(--text-primary);
-      font-size: 14px; font-family: var(--font);
+      font-size: 14px; font-family: var(--font), system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       transition: border-color .15s;
     }
     .form-input:focus, .form-textarea:focus, .form-select:focus {
@@ -345,7 +345,7 @@
       color: var(--text-secondary); cursor: pointer;
       border-bottom: 2px solid transparent; transition: all .15s;
       background: none; border-top: none; border-left: none; border-right: none;
-      font-family: var(--font);
+      font-family: var(--font), system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     }
     .tab:hover { color: var(--text-primary); }
     .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -375,7 +375,7 @@
     .log-stream {
       background: #0a0e14; border: 1px solid var(--border);
       border-radius: var(--radius-sm); padding: 16px;
-      font-family: var(--mono); font-size: 12px;
+      font-family: var(--mono), ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
       max-height: 300px; overflow-y: auto;
       line-height: 1.8;
     }
@@ -434,7 +434,8 @@
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" /></noscript>
 </head>
 <body>
 
@@ -445,8 +446,8 @@
       <span class="icon">&#x1F41F;</span>
       CE Simulation
     </a>
-    <button class="mobile-toggle" onclick="document.querySelector('.links').classList.toggle('open')" aria-label="Menu">&#9776;</button>
-    <div class="links">
+    <button id="mobileMenuButton" class="mobile-toggle" aria-label="Toggle navigation menu" aria-controls="primaryNavLinks" aria-expanded="false">&#9776;</button>
+    <div class="links" id="primaryNavLinks">
       <a href="#features">Features</a>
       <a href="#pipeline">Pipeline</a>
       <a href="#workspace">Workspace</a>
@@ -888,14 +889,14 @@
 function inferAppOrigin() {
   const h = window.location.hostname;
   if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:3000';
-  if (h.startsWith('portal.')) return window.location.protocol + '//' + h.replace(/^portal\./, '');
+  if (h.startsWith('portal.')) { var rootHost = h.replace(/^portal\./, ''); if (rootHost) return window.location.protocol + '//' + rootHost; }
   return window.location.origin;
 }
 
 const API_BASE = (function() {
   const h = window.location.hostname;
   if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:5001';
-  if (h.startsWith('portal.')) return window.location.protocol + '//' + h.replace(/^portal\./, '');
+  if (h.startsWith('portal.')) { var rootHost = h.replace(/^portal\./, ''); if (rootHost) return window.location.protocol + '//' + rootHost; }
   return window.location.origin;
 })();
 
@@ -1166,13 +1167,31 @@ document.querySelectorAll('.tab').forEach(function(tab) {
 
 window.addEventListener('load', autoCheck);
 
-// Close mobile menu after navigation click for better UX on small screens
-document.querySelectorAll('nav .links a').forEach(function(a) {
-  a.addEventListener('click', function() {
-    var links = document.querySelector('nav .links');
-    if (links && links.classList.contains('open')) links.classList.remove('open');
+
+(function setupMobileMenu() {
+  var button = document.getElementById('mobileMenuButton');
+  var links = document.getElementById('primaryNavLinks') || document.querySelector('nav .links');
+  if (!button || !links) return;
+  function closeMenu() {
+    links.classList.remove('open');
+    button.setAttribute('aria-expanded', 'false');
+  }
+  function toggleMenu() {
+    var isOpen = links.classList.toggle('open');
+    button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+  button.addEventListener('click', toggleMenu);
+  document.querySelectorAll('nav .links a').forEach(function(a) {
+    a.addEventListener('click', closeMenu);
   });
-});
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeMenu();
+  });
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 640) closeMenu();
+  });
+})();
+
 </script>
 
 </body>
