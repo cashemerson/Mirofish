@@ -4,11 +4,11 @@ AI-powered ontology generation and simulation platform.
 
 ## Deployment Recovery
 
-This branch (`cursor/mirofish-deployment-recovery-2ae4`) contains a complete, tested deployment stack for MiroFish. It fixes the broken state where `/root/mirofish-deploy` was not a git repo and `scripts/` was empty.
+This repository contains a complete, tested deployment stack for MiroFish. It fixes the broken state where `/root/mirofish-deploy` was not a git repo and `scripts/` was empty.
 
 ### Root cause
 
-The previous deploy directory was corrupted: `git` commands failed ("not a git repository"), and `ls -la scripts` showed only `.` and `..`. The fix is a clean re-clone from this branch.
+The previous deploy directory was corrupted: `git` commands failed ("not a git repository"), and `ls -la scripts` showed only `.` and `..`. The fix is a clean re-clone from this repository.
 
 ### Domains
 
@@ -30,7 +30,7 @@ All commands below are copy-paste-safe. Run them on the server as root.
 cd /root
 docker compose -f /root/mirofish-deploy/deploy/always-on/docker-compose.yml -f /root/mirofish-deploy/deploy/always-on/docker-compose.tls.yml down --remove-orphans 2>/dev/null || true
 rm -rf /root/mirofish-deploy
-git clone --branch cursor/mirofish-deployment-recovery-2ae4 --single-branch --depth 1 https://github.com/cashemerson/Mirofish.git /root/mirofish-deploy
+git clone --depth 1 https://github.com/cashemerson/Mirofish.git /root/mirofish-deploy
 cd /root/mirofish-deploy/deploy/always-on
 chmod +x scripts/*.sh
 ls -la scripts/
@@ -128,7 +128,7 @@ If you prefer a single command that does steps 1-7 automatically, set your API k
 export LLM_API_KEY="sk-your-openai-key"
 export ZEP_API_KEY="your-zep-key"
 export ACME_EMAIL="your-email@example.com"
-curl -fsSL https://raw.githubusercontent.com/cashemerson/Mirofish/cursor/mirofish-deployment-recovery-2ae4/deploy/always-on/scripts/bootstrap-server.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cashemerson/Mirofish/main/deploy/always-on/scripts/bootstrap-server.sh | bash
 ```
 
 Or after cloning:

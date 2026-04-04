@@ -267,7 +267,7 @@ If git commands fail with "not a git repository" or `scripts/` is empty, the dep
 export LLM_API_KEY="sk-your-openai-key"
 export ZEP_API_KEY="your-zep-key"
 export ACME_EMAIL="your-email@example.com"
-bash <(curl -fsSL https://raw.githubusercontent.com/cashemerson/Mirofish/cursor/mirofish-deployment-recovery-2ae4/deploy/always-on/scripts/bootstrap-server.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/cashemerson/Mirofish/main/deploy/always-on/scripts/bootstrap-server.sh)
 ```
 
 Or manually:
@@ -275,7 +275,7 @@ Or manually:
 ```bash
 cd /root
 rm -rf /root/mirofish-deploy
-git clone --branch cursor/mirofish-deployment-recovery-2ae4 --single-branch --depth 1 https://github.com/cashemerson/Mirofish.git /root/mirofish-deploy
+git clone --depth 1 https://github.com/cashemerson/Mirofish.git /root/mirofish-deploy
 cd /root/mirofish-deploy/deploy/always-on
 chmod +x scripts/*.sh
 cp .env.example .env

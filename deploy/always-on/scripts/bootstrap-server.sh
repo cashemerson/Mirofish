@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/cashemerson/Mirofish.git"
-BRANCH="cursor/mirofish-deployment-recovery-2ae4"
+BRANCH="${BRANCH:-main}"
 SERVER_DIR="/root/mirofish-deploy"
 DEPLOY_DIR="${SERVER_DIR}/deploy/always-on"
 
