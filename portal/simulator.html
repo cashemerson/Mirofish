@@ -182,7 +182,14 @@
             </select>
           </div>
         </div>
+        <div class="stat-row">
+          <div class="stat"><div class="v" id="tState">idle</div><div class="l">Run State</div></div>
+          <div class="stat"><div class="v" id="tQueue">--</div><div class="l">Queue Time</div></div>
+          <div class="stat"><div class="v" id="tRound">--</div><div class="l">Avg Round</div></div>
+          <div class="stat"><div class="v" id="tFails">0</div><div class="l">Failures</div></div>
+        </div>
         <div class="result-box" id="simView"><span class="d">Simulation output will stream here...</span></div>
+        <div class="result-box" id="telemetryView" style="margin-top:12px;"><span class="d">Telemetry summary will appear here...</span></div>
         <div style="margin-top:16px; display:flex; gap:12px;">
           <button class="btn btn-g" onclick="wizardStartSim()" id="wStartBtn">Start Simulation &#x25B6;</button>
           <button class="btn btn-r" onclick="wizardStopSim()" id="wStopBtn" style="display:none;">Stop &#x25A0;</button>
@@ -302,6 +309,99 @@ function timedFetch(url, opts, ms) {
 var wState = { projectId: null, graphId: null, simId: null, reportId: null };
 var wFiles = [];
 var pollAbort = null;
+var telemetry = {
+  startedAt: null,
+  firstRunningAt: null,
+  completedAt: null,
+  maxRounds: 0,
+  lastRound: 0,
+  roundDurations: [],
+  lastRoundTs: null,
+  failureCounts: {}
+};
+
+function fmtMs(ms) {
+  if (!ms || ms < 0) return '--';
+  if (ms < 1000) return Math.round(ms) + 'ms';
+  return (ms / 1000).toFixed(1) + 's';
+}
+
+function mean(arr) {
+  if (!arr.length) return 0;
+  return arr.reduce(function(a, b) { return a + b; }, 0) / arr.length;
+}
+
+function resetTelemetry(maxRounds) {
+  telemetry.startedAt = Date.now();
+  telemetry.firstRunningAt = null;
+  telemetry.completedAt = null;
+  telemetry.maxRounds = maxRounds || 0;
+  telemetry.lastRound = 0;
+  telemetry.roundDurations = [];
+  telemetry.lastRoundTs = null;
+  telemetry.failureCounts = {};
+  document.getElementById('tState').textContent = 'queued';
+  document.getElementById('tQueue').textContent = '--';
+  document.getElementById('tRound').textContent = '--';
+  document.getElementById('tFails').textContent = '0';
+  document.getElementById('telemetryView').textContent = 'Telemetry initialized. Waiting for simulation status...';
+}
+
+function addFailure(reason) {
+  var key = (reason || 'unknown').toString().trim() || 'unknown';
+  telemetry.failureCounts[key] = (telemetry.failureCounts[key] || 0) + 1;
+  var total = Object.values(telemetry.failureCounts).reduce(function(a, b) { return a + b; }, 0);
+  document.getElementById('tFails').textContent = String(total);
+}
+
+function updateTelemetryFromStatus(data) {
+  var status = (data && data.status ? String(data.status) : 'polling...').toLowerCase();
+  var now = Date.now();
+  var round = Number(data && (data.current_round || data.round || data.rounds_completed || 0)) || 0;
+  var displayState = status;
+
+  if ((status === 'running' || status === 'in_progress') && telemetry.firstRunningAt == null) {
+    telemetry.firstRunningAt = now;
+  }
+
+  if (telemetry.firstRunningAt != null) {
+    document.getElementById('tQueue').textContent = fmtMs(telemetry.firstRunningAt - telemetry.startedAt);
+  }
+
+  if (round > telemetry.lastRound) {
+    if (telemetry.lastRoundTs != null) {
+      telemetry.roundDurations.push(now - telemetry.lastRoundTs);
+    }
+    telemetry.lastRoundTs = now;
+    telemetry.lastRound = round;
+  }
+
+  if (status === 'failed' || status === 'stopped' || status === 'error') {
+    addFailure(data && (data.error || data.reason || data.message || status));
+  }
+  if (status === 'completed' || status === 'done') {
+    telemetry.completedAt = now;
+    displayState = 'completed';
+  }
+
+  document.getElementById('tState').textContent = displayState;
+  document.getElementById('tRound').textContent = telemetry.roundDurations.length ? fmtMs(mean(telemetry.roundDurations)) : '--';
+
+  var failureKeys = Object.keys(telemetry.failureCounts);
+  var failureSummary = failureKeys.length
+    ? failureKeys.map(function(k) { return k + ': ' + telemetry.failureCounts[k]; }).join(' | ')
+    : 'none';
+  var elapsed = telemetry.completedAt ? fmtMs(telemetry.completedAt - telemetry.startedAt) : fmtMs(now - telemetry.startedAt);
+  var queue = telemetry.firstRunningAt != null ? fmtMs(telemetry.firstRunningAt - telemetry.startedAt) : '--';
+  var maxRounds = telemetry.maxRounds || (data && data.max_rounds) || '--';
+  document.getElementById('telemetryView').textContent =
+    'State: ' + displayState +
+    '\nElapsed: ' + elapsed +
+    '\nQueue time: ' + queue +
+    '\nRounds: ' + round + '/' + maxRounds +
+    '\nAverage round duration: ' + (telemetry.roundDurations.length ? fmtMs(mean(telemetry.roundDurations)) : '--') +
+    '\nFailure reasons: ' + failureSummary;
+}
 
 function showStep(n) {
   document.querySelectorAll('.wstep').forEach(function(s, i) { s.classList.toggle('active', i === n); });
@@ -429,6 +529,7 @@ async function wizardStartSim() {
   if (!wState.simId) { document.getElementById('simView').textContent = 'Create simulation first.'; return; }
   var sv = document.getElementById('simView');
   var rounds = parseInt(document.getElementById('wRounds').value) || 10;
+  resetTelemetry(rounds);
   sv.textContent = 'Starting simulation (' + rounds + ' rounds)...';
   try {
     var res = await timedFetch(API + '/api/simulation/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId, max_rounds: rounds }) }, 30000);
@@ -454,6 +555,7 @@ async function pollSimStatus() {
       if (!res.ok) { sv.textContent += '\n[' + new Date().toLocaleTimeString() + '] Poll: HTTP ' + res.status; continue; }
       var data = await res.json();
       sv.textContent += '\n[' + new Date().toLocaleTimeString() + '] ' + esc(data.status || 'polling...');
+      updateTelemetryFromStatus(data || {});
       if (data.status === 'completed' || data.status === 'done') {
         sv.textContent += '\nSimulation complete!';
         document.getElementById('wStopBtn').style.display = 'none';
@@ -475,6 +577,8 @@ async function wizardStopSim() {
   try {
     await timedFetch(API + '/api/simulation/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId }) });
     document.getElementById('simView').textContent += '\nStop requested.';
+    addFailure('user_stop');
+    updateTelemetryFromStatus({ status: 'stopped', reason: 'user_stop', current_round: telemetry.lastRound, max_rounds: telemetry.maxRounds });
   } catch (err) { document.getElementById('simView').textContent += '\n' + err.message; }
   document.getElementById('wStopBtn').style.display = 'none';
   document.getElementById('wStartBtn').style.display = 'inline-flex';

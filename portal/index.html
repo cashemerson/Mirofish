@@ -142,6 +142,7 @@
       display: flex; align-items: center; gap: 8px;
       font-size: 13px; color: var(--text-secondary);
     }
+    .status-item .meta { color: var(--text-muted); font-size: 12px; margin-left: 6px; }
     .status-dot {
       width: 8px; height: 8px; border-radius: 50%;
       background: var(--text-muted);
@@ -481,14 +482,17 @@
       <div class="status-item">
         <span class="status-dot pending" id="dotApp"></span>
         <span>App (<span id="statusApp">checking...</span>)</span>
+        <span class="meta" id="statusAppMeta"></span>
       </div>
       <div class="status-item">
         <span class="status-dot pending" id="dotApi"></span>
         <span>API (<span id="statusApi">checking...</span>)</span>
+        <span class="meta" id="statusApiMeta"></span>
       </div>
       <div class="status-item">
         <span class="status-dot pending" id="dotPortal"></span>
         <span>Portal (<span id="statusPortal">checking...</span>)</span>
+        <span class="meta" id="statusPortalMeta"></span>
       </div>
     </div>
   </div>
@@ -1076,11 +1080,18 @@ function setStatusDot(id, ok) {
   dot.className = 'status-dot ' + (ok === true ? 'ok' : ok === false ? 'err' : 'pending');
 }
 
+function updateStatusMeta(metaId, text) {
+  var el = document.getElementById(metaId);
+  if (!el) return;
+  el.textContent = text || '';
+}
+
 async function checkEndpoint(url) {
   var start = Date.now();
   try {
     var res = await timedFetch(url, { cache: 'no-cache' }, 10000);
-    return { ok: res.ok, status: res.status, ms: Date.now() - start };
+    var contentType = res.headers && res.headers.get ? (res.headers.get('content-type') || '') : '';
+    return { ok: res.ok, status: res.status, ms: Date.now() - start, contentType: contentType };
   } catch (err) {
     return { ok: false, error: err.name === 'AbortError' ? 'timeout' : err.message, ms: Date.now() - start };
   }
@@ -1091,9 +1102,9 @@ async function runHealthChecks() {
   log.innerHTML = '<div class="log-line"><span class="ts dim">' + new Date().toLocaleTimeString() + '</span> Running health checks...</div>';
 
   var checks = [
-    { url: API_BASE + '/', label: 'App Frontend', dot: 'dotApp', status: 'statusApp', health: 'healthFrontend' },
-    { url: API_BASE + '/health', label: 'API Backend', dot: 'dotApi', status: 'statusApi', health: 'healthBackend' },
-    { url: window.location.origin + '/', label: 'Portal', dot: 'dotPortal', status: 'statusPortal', health: 'healthPortal' },
+    { url: API_BASE + '/', label: 'App Frontend', dot: 'dotApp', status: 'statusApp', statusMeta: 'statusAppMeta', health: 'healthFrontend' },
+    { url: API_BASE + '/health', label: 'API Backend', dot: 'dotApi', status: 'statusApi', statusMeta: 'statusApiMeta', health: 'healthBackend' },
+    { url: window.location.origin + '/', label: 'Portal', dot: 'dotPortal', status: 'statusPortal', statusMeta: 'statusPortalMeta', health: 'healthPortal' },
   ];
 
   for (var i = 0; i < checks.length; i++) {
@@ -1105,12 +1116,14 @@ async function runHealthChecks() {
       log.innerHTML += '<div class="log-line"><span class="ts dim">' + ts + '</span> <span style="color:var(--green)">\u2713</span> ' + esc(check.label) + ': HTTP ' + result.status + ' (' + result.ms + 'ms)</div>';
       setStatusDot(check.dot, true);
       document.getElementById(check.status).textContent = result.ms + 'ms';
+      updateStatusMeta(check.statusMeta, 'HTTP ' + result.status);
       document.getElementById(check.health).textContent = 'Healthy';
       document.getElementById(check.health).style.color = 'var(--green)';
     } else {
       log.innerHTML += '<div class="log-line"><span class="ts dim">' + ts + '</span> <span style="color:var(--red)">\u2717</span> ' + esc(check.label) + ': ' + esc(result.error || 'HTTP ' + result.status) + ' (' + result.ms + 'ms)</div>';
       setStatusDot(check.dot, false);
       document.getElementById(check.status).textContent = 'error';
+      updateStatusMeta(check.statusMeta, result.error || ('HTTP ' + result.status));
       document.getElementById(check.health).textContent = 'Down';
       document.getElementById(check.health).style.color = 'var(--red)';
     }
@@ -1125,17 +1138,20 @@ async function runHealthChecks() {
 // Auto-check on load (only status bar, defer tab data to tab activation)
 async function autoCheck() {
   var endpoints = [
-    { url: API_BASE + '/', dot: 'dotApp', status: 'statusApp' },
-    { url: API_BASE + '/health', dot: 'dotApi', status: 'statusApi' },
+    { url: API_BASE + '/', dot: 'dotApp', status: 'statusApp', statusMeta: 'statusAppMeta' },
+    { url: API_BASE + '/health', dot: 'dotApi', status: 'statusApi', statusMeta: 'statusApiMeta' },
   ];
   for (var i = 0; i < endpoints.length; i++) {
     var ep = endpoints[i];
     var result = await checkEndpoint(ep.url);
     setStatusDot(ep.dot, result.ok);
-    document.getElementById(ep.status).textContent = result.ok ? 'online' : 'offline';
+    document.getElementById(ep.status).textContent = result.ok ? (result.ms + 'ms') : 'offline';
+    updateStatusMeta(ep.statusMeta, result.ok ? ('HTTP ' + result.status) : (result.error || 'error'));
   }
-  setStatusDot('dotPortal', true);
-  document.getElementById('statusPortal').textContent = 'online';
+  var portalResult = await checkEndpoint(window.location.origin + '/');
+  setStatusDot('dotPortal', portalResult.ok);
+  document.getElementById('statusPortal').textContent = portalResult.ok ? (portalResult.ms + 'ms') : 'offline';
+  updateStatusMeta('statusPortalMeta', portalResult.ok ? ('HTTP ' + portalResult.status) : (portalResult.error || 'error'));
 }
 
 // Lazy-load tab data on first activation
