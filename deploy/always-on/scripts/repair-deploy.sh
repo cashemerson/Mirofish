@@ -172,6 +172,7 @@ EOF
 
   if [ ! -f "${DEPLOY_DIR}/portal/index.html" ]; then
     if ! cp "${DEPLOY_DIR}/../portal/index.html" "${DEPLOY_DIR}/portal/index.html" 2>/dev/null; then
+      echo "WARN: Could not copy ${DEPLOY_DIR}/../portal/index.html; writing minimal placeholder portal page."
       cat > "${DEPLOY_DIR}/portal/index.html" <<'EOF'
 <!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MiroFish Portal</title></head><body><h1>MiroFish Portal</h1><p>Portal page is missing. Restore portal/index.html from repository.</p></body></html>
 EOF
