@@ -57,6 +57,7 @@ main() {
   require_tool docker
   require_tool curl
   require_file "${DEPLOY_DIR}/docker-compose.yml"
+  require_file "${DEPLOY_DIR}/docker-compose.tls.yml"
   require_file "${DEPLOY_DIR}/Caddyfile.template"
   require_file "${DEPLOY_DIR}/portal-nginx.conf"
 
@@ -108,7 +109,7 @@ main() {
   ensure_env_var "MIROFISH_DOMAIN" "${APP_DOMAIN},${ROOT_DOMAIN}"
   ensure_env_var "PORTAL_DOMAIN" "${PORTAL_DOMAIN}"
   ensure_env_var "ACME_EMAIL" "${ACME_EMAIL}"
-  ensure_env_var "API_MAX_UPLOAD_SIZE" "64MB"
+  ensure_env_var "API_MAX_UPLOAD_SIZE" "100MB"
   ensure_env_var "API_RESPONSE_HEADER_TIMEOUT" "600s"
   ensure_env_var "API_READ_TIMEOUT" "600s"
   ensure_env_var "API_WRITE_TIMEOUT" "600s"
@@ -125,6 +126,8 @@ services:
     volumes:
       - ./portal:/usr/share/nginx/html:ro
       - ./portal-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8080:8080"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
       interval: 15s
@@ -146,40 +149,11 @@ services:
     volumes:
       - ./uploads:/app/backend/uploads
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5001/api/simulation/history?limit=1 || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5001/health || exit 1"]
       interval: 20s
       timeout: 8s
       retries: 10
       start_period: 45s
-
-  caddy:
-    image: caddy:2.8-alpine
-    container_name: mirofish-caddy
-    init: true
-    restart: unless-stopped
-    depends_on:
-      portal:
-        condition: service_healthy
-      mirofish:
-        condition: service_healthy
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2019/config/ || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 8
-      start_period: 20s
-
-volumes:
-  caddy_data:
-  caddy_config:
 EOF
 
   cat > "${DEPLOY_DIR}/portal-nginx.conf" <<'EOF'
@@ -194,6 +168,8 @@ server {
 }
 EOF
 
+  bash "${SCRIPT_DIR}/render-caddyfile.sh"
+
   if [ ! -f "${DEPLOY_DIR}/portal/index.html" ]; then
     if ! curl -fsSL "https://raw.githubusercontent.com/cashemerson/Mirofish/refs/heads/cursor/mirofish-deployment-recovery-2ae4/deploy/always-on/portal/index.html" -o "${DEPLOY_DIR}/portal/index.html"; then
       cat > "${DEPLOY_DIR}/portal/index.html" <<'EOF'
@@ -202,48 +178,13 @@ EOF
     fi
   fi
 
-  cat > "${DEPLOY_DIR}/Caddyfile" <<EOF
-${APP_DOMAIN}, ${ROOT_DOMAIN} {
-  encode zstd gzip
-  tls ${ACME_EMAIL}
-  @api path /api/*
-  handle @api {
-    request_body {
-      max_size ${API_MAX_UPLOAD_SIZE:-64MB}
-    }
-    reverse_proxy mirofish:5001 {
-      header_up Host localhost
-      flush_interval -1
-      transport http {
-        dial_timeout 10s
-        response_header_timeout ${API_RESPONSE_HEADER_TIMEOUT:-600s}
-        read_timeout ${API_READ_TIMEOUT:-600s}
-        write_timeout ${API_WRITE_TIMEOUT:-600s}
-      }
-    }
-  }
-  reverse_proxy mirofish:3000 {
-    header_up Host localhost
-    transport http {
-      dial_timeout 10s
-      response_header_timeout 120s
-    }
-  }
-}
-
-${PORTAL_DOMAIN} {
-  encode zstd gzip
-  tls ${ACME_EMAIL}
-  reverse_proxy portal:8080
-}
-EOF
-
-  docker compose -f "${DEPLOY_DIR}/docker-compose.yml" config >/dev/null
-  docker compose -f "${DEPLOY_DIR}/docker-compose.yml" up -d --force-recreate
-  docker compose -f "${DEPLOY_DIR}/docker-compose.yml" ps
+  docker compose -f "${DEPLOY_DIR}/docker-compose.yml" -f "${DEPLOY_DIR}/docker-compose.tls.yml" config >/dev/null
+  docker compose -f "${DEPLOY_DIR}/docker-compose.yml" -f "${DEPLOY_DIR}/docker-compose.tls.yml" up -d --force-recreate
+  docker compose -f "${DEPLOY_DIR}/docker-compose.yml" -f "${DEPLOY_DIR}/docker-compose.tls.yml" ps
 
   if [ -x "${DEPLOY_DIR}/scripts/smoke-check.sh" ]; then
-    APP_URL="https://${ROOT_DOMAIN}" PORTAL_URL="https://${PORTAL_DOMAIN}"       "${DEPLOY_DIR}/scripts/smoke-check.sh" || true
+    APP_URL="https://${ROOT_DOMAIN}" PORTAL_URL="https://${PORTAL_DOMAIN}" \
+      "${DEPLOY_DIR}/scripts/smoke-check.sh" || true
   fi
 }
 

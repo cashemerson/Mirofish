@@ -45,6 +45,12 @@ else
 ${APP_HOSTS} {
   encode zstd gzip
   tls ${ACME}
+  @health path /health
+  handle @health {
+    reverse_proxy mirofish:5001 {
+      header_up Host localhost
+    }
+  }
   @api path /api/*
   handle @api {
     request_body { max_size 100MB }

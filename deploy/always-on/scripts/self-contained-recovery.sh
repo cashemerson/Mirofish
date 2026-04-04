@@ -106,6 +106,13 @@ __APP_HOSTS__ {
   encode zstd gzip
   tls __ACME_EMAIL__
 
+  @health path /health
+  handle @health {
+    reverse_proxy mirofish:5001 {
+      header_up Host localhost
+    }
+  }
+
   @api path /api/*
   handle @api {
     request_body {
@@ -125,9 +132,12 @@ __APP_HOSTS__ {
 
   reverse_proxy mirofish:3000 {
     header_up Host localhost
+    flush_interval -1
     transport http {
       dial_timeout 10s
       response_header_timeout 120s
+      read_timeout 120s
+      write_timeout 120s
     }
   }
 }

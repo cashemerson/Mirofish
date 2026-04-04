@@ -36,7 +36,7 @@ chmod +x scripts/*.sh
 ls -la scripts/
 ```
 
-Expected output: six `.sh` files in `scripts/`.
+Expected output: nine `.sh` files in `scripts/`.
 
 ### Step 2 — Create .env from template
 
