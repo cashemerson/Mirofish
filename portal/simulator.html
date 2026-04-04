@@ -86,7 +86,7 @@
       <a href="index.html">Home</a>
       <a href="report.html">Intelligence</a>
       <a href="index.html#api">API</a>
-      <a href="https://app.cesimulation.it.com" class="cta" target="_blank" rel="noopener">Launch App &rarr;</a>
+      <a href="#" data-app-link class="cta" target="_blank" rel="noopener">Launch App &rarr;</a>
     </div>
   </div>
 </nav>
@@ -268,18 +268,28 @@
 
 <footer>
   <div class="container">
-    <p>CE Simulation &mdash; <a href="index.html">Home</a> &middot; <a href="report.html">Intelligence</a> &middot; <a href="https://app.cesimulation.it.com" target="_blank" rel="noopener">Launch App</a></p>
+    <p>CE Simulation &mdash; <a href="index.html">Home</a> &middot; <a href="report.html">Intelligence</a> &middot; <a href="#" data-app-link target="_blank" rel="noopener">Launch App</a></p>
   </div>
 </footer>
 
 <script>
+function inferAppOrigin() {
+  var h = window.location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:3000';
+  if (h.indexOf('portal.') === 0) return window.location.protocol + '//' + h.replace(/^portal\./, '');
+  return window.location.origin;
+}
+
 var API = (function() {
   var h = window.location.hostname;
   if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:5001';
-  if (h === 'portal.cesimulation.it.com') return 'https://cesimulation.it.com';
-  if (h.endsWith('.cesimulation.it.com') || h === 'cesimulation.it.com') return 'https://cesimulation.it.com';
+  if (h.indexOf('portal.') === 0) return window.location.protocol + '//' + h.replace(/^portal\./, '');
   return window.location.origin;
 })();
+
+document.querySelectorAll('[data-app-link]').forEach(function(el) {
+  el.href = inferAppOrigin();
+});
 
 function esc(s) { if (s == null) return ''; var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 function timedFetch(url, opts, ms) {
