@@ -78,9 +78,41 @@ docker compose ps
 echo
 
 echo "== Public endpoint checks =="
-APP_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" "${APP_URL}/")"
-PORTAL_STATUS_NOAUTH="$(curl -sk -o /dev/null -w "%{http_code}" "${PORTAL_URL}/")"
-API_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" "${API_URL}")"
+fetch_http_status() {
+  local url="$1"
+  local status
+  status="$(curl -skL --connect-timeout 5 --max-time 15 -o /dev/null -w "%{http_code}" "${url}" || true)"
+  if [ -z "${status}" ]; then
+    status="000"
+  fi
+  printf "%s" "${status}"
+}
+
+check_with_retry() {
+  local label="$1"
+  local url="$2"
+  local attempts="${3:-6}"
+  local delay_secs="${4:-5}"
+  local status="000"
+  local i
+
+  for i in $(seq 1 "${attempts}"); do
+    status="$(fetch_http_status "${url}")"
+    echo "${label} attempt ${i}/${attempts}: HTTP ${status} (${url})" >&2
+    if [ "${status}" != "000" ]; then
+      break
+    fi
+    if [ "${i}" -lt "${attempts}" ]; then
+      sleep "${delay_secs}"
+    fi
+  done
+
+  printf "%s" "${status}"
+}
+
+APP_STATUS="$(check_with_retry "App" "${APP_URL}/")"
+PORTAL_STATUS_NOAUTH="$(check_with_retry "Portal" "${PORTAL_URL}/")"
+API_STATUS="$(check_with_retry "API" "${API_URL}")"
 
 echo "App status: ${APP_STATUS} (expected 200/301/302/307/308)"
 echo "Portal status: ${PORTAL_STATUS_NOAUTH} (expected 200)"
@@ -100,6 +132,10 @@ if [ "${PORTAL_STATUS_NOAUTH}" != "200" ]; then
 fi
 
 case "${API_STATUS}" in
+  000)
+    echo "FAIL: API endpoint was unreachable after retries"
+    FAIL=1
+    ;;
   500|502|503|504)
     echo "FAIL: API returned server error ${API_STATUS}"
     FAIL=1
@@ -109,10 +145,18 @@ esac
 if [ "${FAIL}" -ne 0 ]; then
   echo
   echo "Smoke check failed. Last 120 log lines:"
-  echo "--- caddy ---"
-  docker compose logs --tail=120 caddy || true
-  echo "--- mirofish ---"
-  docker compose logs --tail=120 mirofish || true
+  service_exists() {
+    docker compose ps --services 2>/dev/null | grep -Fxq "$1"
+  }
+  if [ "${APP_STATUS}" = "000" ] || [ "${PORTAL_STATUS_NOAUTH}" = "000" ] || [ "${API_STATUS}" = "000" ]; then
+    echo "Hint: one or more endpoints were unreachable (HTTP 000). Check DNS records, TLS issuance, and caddy startup state."
+  fi
+  for svc in caddy mirofish portal; do
+    if service_exists "${svc}"; then
+      echo "--- ${svc} ---"
+      docker compose logs --tail=120 "${svc}" || true
+    fi
+  done
   exit 1
 fi
 

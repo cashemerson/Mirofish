@@ -14,7 +14,7 @@
       --mono: 'JetBrains Mono','Fira Code',monospace;
       --font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
     }
-    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; }
+    body { font-family: var(--font), system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
     .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
     a { color: var(--accent); text-decoration: none; }
 
@@ -26,6 +26,7 @@
     nav .links a { color: var(--muted); padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; transition: all .15s; }
     nav .links a:hover { color: var(--text); background: var(--elevated); }
     nav .links a.cta { background: var(--accent); color: #fff; }
+    .mobile-toggle { display: none; background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; }
 
     .hero-sm { padding: 60px 0 40px; text-align: center; }
     .hero-sm h1 { font-size: 36px; font-weight: 700; margin-bottom: 12px; }
@@ -34,7 +35,32 @@
     .section { padding: 40px 0 80px; }
     h2 { font-size: 24px; margin-bottom: 20px; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .container { padding: 0 16px; }
+      .hero-sm { padding: 44px 0 28px; }
+      .hero-sm h1 { font-size: 30px; }
+      .wizard-steps { overflow-x: auto; }
+      .wstep { min-width: 120px; white-space: nowrap; }
+      .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .stat { min-width: 0; }
+      nav .links a { padding: 7px 10px; font-size: 13px; }
+    }
+    @media (max-width: 640px) {
+      .mobile-toggle { display: block; }
+      nav .links {
+        display: none; position: absolute; top: 64px; left: 0; right: 0;
+        background: var(--bg); border-bottom: 1px solid var(--border);
+        flex-direction: column; padding: 12px 16px; z-index: 200;
+      }
+      nav .links.open { display: flex; }
+      nav .links a { width: 100%; }
+      .hero-sm h1 { font-size: 26px; }
+      .section { padding: 28px 0 56px; }
+      .card { padding: 18px; }
+      .result-box { max-height: 320px; }
+      .stat-row { grid-template-columns: 1fr; }
+    }
 
     .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 24px; }
     .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
@@ -42,21 +68,21 @@
     label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
     input, select, textarea {
       width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border);
-      border-radius: var(--rs); color: var(--text); font-size: 14px; font-family: var(--font);
+      border-radius: var(--rs); color: var(--text); font-size: 14px; font-family: var(--font), system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       transition: border-color .15s; margin-bottom: 14px;
     }
     input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
     textarea { resize: vertical; min-height: 80px; }
     select { cursor: pointer; }
 
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: var(--rs); font-size: 14px; font-weight: 600; border: 1px solid var(--border); cursor: pointer; font-family: var(--font); transition: all .15s; background: var(--card); color: var(--text); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: var(--rs); font-size: 14px; font-weight: 600; border: 1px solid var(--border); cursor: pointer; font-family: var(--font), system-ui, -apple-system, Segoe UI, Roboto, sans-serif; transition: all .15s; background: var(--card); color: var(--text); }
     .btn:hover { background: var(--hover); }
     .btn-p { background: var(--accent); color: #fff; border-color: var(--accent); }
     .btn-p:hover { opacity: .9; }
     .btn-g { background: var(--green); color: #fff; border-color: var(--green); }
     .btn-r { background: var(--red); color: #fff; border-color: var(--red); }
 
-    .result-box { background: #0a0e14; border: 1px solid var(--border); border-radius: var(--rs); padding: 16px; font-family: var(--mono); font-size: 13px; color: var(--muted); max-height: 500px; overflow-y: auto; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+    .result-box { background: #0a0e14; border: 1px solid var(--border); border-radius: var(--rs); padding: 16px; font-family: var(--mono), ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--muted); max-height: 500px; overflow-y: auto; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
     .g { color: var(--green); } .r { color: var(--red); } .o { color: var(--orange); } .b { color: var(--accent); } .p { color: var(--purple); } .d { color: var(--dim); }
 
     .wizard-steps { display: flex; gap: 0; margin-bottom: 32px; }
@@ -75,18 +101,20 @@
 
     footer { border-top: 1px solid var(--border); padding: 40px 0; text-align: center; color: var(--dim); font-size: 13px; }
   </style>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" /></noscript>
 </head>
 <body>
 
 <nav>
   <div class="inner">
     <a href="index.html" class="logo"><span class="icon">&#x1F41F;</span> CE Simulation</a>
-    <div class="links">
+    <button id="mobileMenuButton" class="mobile-toggle" aria-label="Toggle navigation menu" aria-controls="primaryNavLinks" aria-expanded="false">&#9776;</button>
+    <div class="links" id="primaryNavLinks">
       <a href="index.html">Home</a>
       <a href="report.html">Intelligence</a>
       <a href="index.html#api">API</a>
-      <a href="https://app.cesimulation.it.com" class="cta" target="_blank" rel="noopener">Launch App &rarr;</a>
+      <a href="#" data-app-link class="cta" target="_blank" rel="noopener">Launch App &rarr;</a>
     </div>
   </div>
 </nav>
@@ -182,7 +210,14 @@
             </select>
           </div>
         </div>
+        <div class="stat-row">
+          <div class="stat"><div class="v" id="tState">idle</div><div class="l">Run State</div></div>
+          <div class="stat"><div class="v" id="tQueue">--</div><div class="l">Queue Time</div></div>
+          <div class="stat"><div class="v" id="tRound">--</div><div class="l">Avg Round</div></div>
+          <div class="stat"><div class="v" id="tFails">0</div><div class="l">Failures</div></div>
+        </div>
         <div class="result-box" id="simView"><span class="d">Simulation output will stream here...</span></div>
+        <div class="result-box" id="telemetryView" style="margin-top:12px;"><span class="d">Telemetry summary will appear here...</span></div>
         <div style="margin-top:16px; display:flex; gap:12px;">
           <button class="btn btn-g" onclick="wizardStartSim()" id="wStartBtn">Start Simulation &#x25B6;</button>
           <button class="btn btn-r" onclick="wizardStopSim()" id="wStopBtn" style="display:none;">Stop &#x25A0;</button>
@@ -247,7 +282,7 @@
         <label>Side A American Odds</label>
         <input type="number" id="vigA" value="-150" />
         <label>Side B American Odds</label>
-        <input type="number" id="vigB" value="+130" />
+        <input type="number" id="vigB" value="130" />
         <button class="btn btn-p" onclick="calcVig()" style="width:100%">Remove Vig</button>
       </div>
       <div class="card">
@@ -268,18 +303,39 @@
 
 <footer>
   <div class="container">
-    <p>CE Simulation &mdash; <a href="index.html">Home</a> &middot; <a href="report.html">Intelligence</a> &middot; <a href="https://app.cesimulation.it.com" target="_blank" rel="noopener">Launch App</a></p>
+    <p>CE Simulation &mdash; <a href="index.html">Home</a> &middot; <a href="report.html">Intelligence</a> &middot; <a href="#" data-app-link target="_blank" rel="noopener">Launch App</a></p>
   </div>
 </footer>
 
 <script>
+function getPortalRootOrigin() {
+  var h = window.location.hostname || '';
+  if (!h.startsWith('portal.')) return null;
+  var rootHost = h.replace(/^portal\./, '').trim();
+  if (!rootHost || rootHost.indexOf('.') === -1) return null;
+  return window.location.protocol + '//' + rootHost;
+}
+
+function inferAppOrigin() {
+  var h = window.location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:3000';
+  var rootOrigin = getPortalRootOrigin();
+  if (rootOrigin) return rootOrigin;
+  return window.location.origin;
+}
+
 var API = (function() {
   var h = window.location.hostname;
   if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:5001';
-  if (h === 'portal.cesimulation.it.com') return 'https://cesimulation.it.com';
-  if (h.endsWith('.cesimulation.it.com') || h === 'cesimulation.it.com') return 'https://cesimulation.it.com';
+  var rootOrigin = getPortalRootOrigin();
+  if (rootOrigin) return rootOrigin;
   return window.location.origin;
 })();
+
+document.querySelectorAll('[data-app-link]').forEach(function(el) {
+  el.href = inferAppOrigin();
+});
+
 
 function esc(s) { if (s == null) return ''; var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 function timedFetch(url, opts, ms) {
@@ -292,6 +348,99 @@ function timedFetch(url, opts, ms) {
 var wState = { projectId: null, graphId: null, simId: null, reportId: null };
 var wFiles = [];
 var pollAbort = null;
+var telemetry = {
+  startedAt: null,
+  firstRunningAt: null,
+  completedAt: null,
+  maxRounds: 0,
+  lastRound: 0,
+  roundDurations: [],
+  lastRoundTs: null,
+  failureCounts: {}
+};
+
+function fmtMs(ms) {
+  if (!ms || ms < 0) return '--';
+  if (ms < 1000) return Math.round(ms) + 'ms';
+  return (ms / 1000).toFixed(1) + 's';
+}
+
+function mean(arr) {
+  if (!arr.length) return 0;
+  return arr.reduce(function(a, b) { return a + b; }, 0) / arr.length;
+}
+
+function resetTelemetry(maxRounds) {
+  telemetry.startedAt = Date.now();
+  telemetry.firstRunningAt = null;
+  telemetry.completedAt = null;
+  telemetry.maxRounds = maxRounds || 0;
+  telemetry.lastRound = 0;
+  telemetry.roundDurations = [];
+  telemetry.lastRoundTs = null;
+  telemetry.failureCounts = {};
+  document.getElementById('tState').textContent = 'queued';
+  document.getElementById('tQueue').textContent = '--';
+  document.getElementById('tRound').textContent = '--';
+  document.getElementById('tFails').textContent = '0';
+  document.getElementById('telemetryView').textContent = 'Telemetry initialized. Waiting for simulation status...';
+}
+
+function addFailure(reason) {
+  var key = (reason || 'unknown').toString().trim() || 'unknown';
+  telemetry.failureCounts[key] = (telemetry.failureCounts[key] || 0) + 1;
+  var total = Object.values(telemetry.failureCounts).reduce(function(a, b) { return a + b; }, 0);
+  document.getElementById('tFails').textContent = String(total);
+}
+
+function updateTelemetryFromStatus(data) {
+  var status = (data && data.status ? String(data.status) : 'polling...').toLowerCase();
+  var now = Date.now();
+  var round = Number(data && (data.current_round || data.round || data.rounds_completed || 0)) || 0;
+  var displayState = status;
+
+  if ((status === 'running' || status === 'in_progress') && telemetry.firstRunningAt == null) {
+    telemetry.firstRunningAt = now;
+  }
+
+  if (telemetry.firstRunningAt != null) {
+    document.getElementById('tQueue').textContent = fmtMs(telemetry.firstRunningAt - telemetry.startedAt);
+  }
+
+  if (round > telemetry.lastRound) {
+    if (telemetry.lastRoundTs != null) {
+      telemetry.roundDurations.push(now - telemetry.lastRoundTs);
+    }
+    telemetry.lastRoundTs = now;
+    telemetry.lastRound = round;
+  }
+
+  if (status === 'failed' || status === 'stopped' || status === 'error') {
+    addFailure(data && (data.error || data.reason || data.message || status));
+  }
+  if (status === 'completed' || status === 'done') {
+    telemetry.completedAt = now;
+    displayState = 'completed';
+  }
+
+  document.getElementById('tState').textContent = displayState;
+  document.getElementById('tRound').textContent = telemetry.roundDurations.length ? fmtMs(mean(telemetry.roundDurations)) : '--';
+
+  var failureKeys = Object.keys(telemetry.failureCounts);
+  var failureSummary = failureKeys.length
+    ? failureKeys.map(function(k) { return k + ': ' + telemetry.failureCounts[k]; }).join(' | ')
+    : 'none';
+  var elapsed = telemetry.completedAt ? fmtMs(telemetry.completedAt - telemetry.startedAt) : fmtMs(now - telemetry.startedAt);
+  var queue = telemetry.firstRunningAt != null ? fmtMs(telemetry.firstRunningAt - telemetry.startedAt) : '--';
+  var maxRounds = telemetry.maxRounds || (data && data.max_rounds) || '--';
+  document.getElementById('telemetryView').textContent =
+    'State: ' + displayState +
+    '\nElapsed: ' + elapsed +
+    '\nQueue time: ' + queue +
+    '\nRounds: ' + round + '/' + maxRounds +
+    '\nAverage round duration: ' + (telemetry.roundDurations.length ? fmtMs(mean(telemetry.roundDurations)) : '--') +
+    '\nFailure reasons: ' + failureSummary;
+}
 
 function showStep(n) {
   document.querySelectorAll('.wstep').forEach(function(s, i) { s.classList.toggle('active', i === n); });
@@ -419,6 +568,7 @@ async function wizardStartSim() {
   if (!wState.simId) { document.getElementById('simView').textContent = 'Create simulation first.'; return; }
   var sv = document.getElementById('simView');
   var rounds = parseInt(document.getElementById('wRounds').value) || 10;
+  resetTelemetry(rounds);
   sv.textContent = 'Starting simulation (' + rounds + ' rounds)...';
   try {
     var res = await timedFetch(API + '/api/simulation/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId, max_rounds: rounds }) }, 30000);
@@ -444,6 +594,7 @@ async function pollSimStatus() {
       if (!res.ok) { sv.textContent += '\n[' + new Date().toLocaleTimeString() + '] Poll: HTTP ' + res.status; continue; }
       var data = await res.json();
       sv.textContent += '\n[' + new Date().toLocaleTimeString() + '] ' + esc(data.status || 'polling...');
+      updateTelemetryFromStatus(data || {});
       if (data.status === 'completed' || data.status === 'done') {
         sv.textContent += '\nSimulation complete!';
         document.getElementById('wStopBtn').style.display = 'none';
@@ -465,6 +616,8 @@ async function wizardStopSim() {
   try {
     await timedFetch(API + '/api/simulation/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId }) });
     document.getElementById('simView').textContent += '\nStop requested.';
+    addFailure('user_stop');
+    updateTelemetryFromStatus({ status: 'stopped', reason: 'user_stop', current_round: telemetry.lastRound, max_rounds: telemetry.maxRounds });
   } catch (err) { document.getElementById('simView').textContent += '\n' + err.message; }
   document.getElementById('wStopBtn').style.display = 'none';
   document.getElementById('wStartBtn').style.display = 'inline-flex';
@@ -575,6 +728,48 @@ function calcVig() {
   document.getElementById('vigPct').textContent = (vig * 100).toFixed(1) + '%';
   document.getElementById('overround').textContent = (total * 100).toFixed(1) + '%';
 }
+
+['odds', 'modelProb', 'feeCost'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', calcEV);
+  el.addEventListener('keydown', function(e) { if (e.key === 'Enter') calcEV(); });
+});
+
+['vigA', 'vigB'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', calcVig);
+  el.addEventListener('keydown', function(e) { if (e.key === 'Enter') calcVig(); });
+});
+
+calcEV();
+calcVig();
+
+(function setupMobileMenu() {
+  var button = document.getElementById('mobileMenuButton');
+  var links = document.getElementById('primaryNavLinks') || document.querySelector('nav .links');
+  if (!button || !links) return;
+  function closeMenu() {
+    links.classList.remove('open');
+    button.setAttribute('aria-expanded', 'false');
+  }
+  function toggleMenu() {
+    var isOpen = links.classList.toggle('open');
+    button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+  button.addEventListener('click', toggleMenu);
+  document.querySelectorAll('nav .links a').forEach(function(a) {
+    a.addEventListener('click', closeMenu);
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeMenu();
+  });
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 640) closeMenu();
+  });
+})();
+
 </script>
 
 </body>

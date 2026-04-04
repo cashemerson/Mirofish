@@ -134,6 +134,107 @@ This script:
 
 ---
 
+## Option 3: beginner VPS setup (Nginx + Certbot, no Docker)
+
+Use this path if you want the simplest direct VPS deployment flow for:
+- `cesimulation.it.com`
+- `www.cesimulation.it.com`
+
+### 1) Set DNS in Namecheap
+
+Go to **Domain List → Manage → Advanced DNS** and add:
+- **A Record**: Host `@` → Value `159.198.76.91`
+- **CNAME Record**: Host `www` → Value `cesimulation.it.com`
+
+Save changes.
+
+### 2) Wait for DNS propagation
+
+Usually 5–30 minutes (can take up to 24 hours).
+
+### 3) SSH into VPS
+
+```bash
+ssh root@159.198.76.91
+```
+
+### 4) Install web server + SSL tools
+
+```bash
+apt update && apt upgrade -y
+apt install -y nginx certbot python3-certbot-nginx
+```
+
+### 5) Open firewall ports
+
+```bash
+ufw allow OpenSSH
+ufw allow 'Nginx Full'
+ufw enable
+```
+
+### 6) Run your app on port 3000
+
+Make sure your app is running on `127.0.0.1:3000` before configuring the reverse proxy.
+
+### 7) Create Nginx config
+
+```bash
+nano /etc/nginx/sites-available/cesimulation.it.com
+```
+
+Paste:
+
+```nginx
+server {
+  listen 80;
+  server_name cesimulation.it.com www.cesimulation.it.com;
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+  }
+}
+```
+
+### 8) Enable the site
+
+```bash
+ln -s /etc/nginx/sites-available/cesimulation.it.com /etc/nginx/sites-enabled/
+nginx -t
+systemctl reload nginx
+```
+
+### 9) Install HTTPS certificate
+
+```bash
+certbot --nginx -d cesimulation.it.com -d www.cesimulation.it.com
+```
+
+When prompted, choose redirect to HTTPS.
+
+### 10) Test in browser
+
+- `http://cesimulation.it.com`
+- `https://cesimulation.it.com`
+- `https://www.cesimulation.it.com`
+
+### 11) If site is still not loading
+
+```bash
+nslookup cesimulation.it.com
+systemctl status nginx
+ss -tulpn | grep 3000
+```
+
+If needed, set up PM2 so the app stays online after reboot.
+
+---
+
 ## Troubleshooting restart loops quickly
 
 If any container restarts:
@@ -166,7 +267,7 @@ If git commands fail with "not a git repository" or `scripts/` is empty, the dep
 export LLM_API_KEY="sk-your-openai-key"
 export ZEP_API_KEY="your-zep-key"
 export ACME_EMAIL="your-email@example.com"
-bash <(curl -fsSL https://raw.githubusercontent.com/cashemerson/Mirofish/cursor/mirofish-deployment-recovery-2ae4/deploy/always-on/scripts/bootstrap-server.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/cashemerson/Mirofish/main/deploy/always-on/scripts/bootstrap-server.sh)
 ```
 
 Or manually:
@@ -174,7 +275,7 @@ Or manually:
 ```bash
 cd /root
 rm -rf /root/mirofish-deploy
-git clone --branch cursor/mirofish-deployment-recovery-2ae4 --single-branch --depth 1 https://github.com/cashemerson/Mirofish.git /root/mirofish-deploy
+git clone --depth 1 https://github.com/cashemerson/Mirofish.git /root/mirofish-deploy
 cd /root/mirofish-deploy/deploy/always-on
 chmod +x scripts/*.sh
 cp .env.example .env

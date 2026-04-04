@@ -15,7 +15,7 @@
       --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
-    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.65; }
+    body { font-family: var(--font), system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
     .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
 
     nav {
@@ -30,6 +30,7 @@
     nav .links a { color: var(--muted); text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; transition: all .15s; }
     nav .links a:hover { color: var(--text); background: var(--elevated); }
     nav .links a.cta { background: var(--accent); color: #fff; }
+    .mobile-toggle { display: none; background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; }
 
     .hero-sm { padding: 60px 0 40px; text-align: center; }
     .hero-sm h1 { font-size: 36px; font-weight: 700; margin-bottom: 12px; }
@@ -44,7 +45,7 @@
 
     .formula {
       background: var(--card); border: 1px solid var(--border); border-radius: 8px;
-      padding: 10px 14px; font-family: var(--mono); font-size: 13px;
+      padding: 10px 14px; font-family: var(--mono), ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px;
       color: var(--green); margin-bottom: 8px; overflow-x: auto;
     }
 
@@ -73,20 +74,44 @@
     footer { border-top: 1px solid var(--border); padding: 40px 0; text-align: center; color: var(--dim); font-size: 13px; }
     footer a { color: var(--accent); text-decoration: none; }
 
-    @media (max-width: 640px) { .hero-sm h1 { font-size: 28px; } }
+    @media (max-width: 768px) {
+      .container { padding: 0 16px; }
+      .hero-sm { padding: 44px 0 28px; }
+      .hero-sm h1 { font-size: 30px; }
+      .report { padding: 0 0 56px; }
+      .meta-bar { gap: 12px; justify-content: center !important; }
+      .report h2 { font-size: 20px; }
+      .report h3 { font-size: 16px; }
+      nav .links a { padding: 7px 10px; font-size: 13px; }
+    }
+    @media (max-width: 640px) {
+      .mobile-toggle { display: block; }
+      nav .links {
+        display: none; position: absolute; top: 64px; left: 0; right: 0;
+        background: var(--bg); border-bottom: 1px solid var(--border);
+        flex-direction: column; padding: 12px 16px; z-index: 200;
+      }
+      nav .links.open { display: flex; }
+      nav .links a { width: 100%; }
+      .hero-sm h1 { font-size: 26px; }
+      .toc { padding: 16px; }
+      .report table { min-width: 560px; }
+    }
   </style>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" /></noscript>
 </head>
 <body>
 
 <nav>
   <div class="inner">
     <a href="index.html" class="logo"><span class="icon">&#x1F41F;</span> CE Simulation</a>
-    <div class="links">
+    <button id="mobileMenuButton" class="mobile-toggle" aria-label="Toggle navigation menu" aria-controls="primaryNavLinks" aria-expanded="false">&#9776;</button>
+    <div class="links" id="primaryNavLinks">
       <a href="index.html">Home</a>
       <a href="index.html#workspace">Workspace</a>
       <a href="simulator.html">Simulator</a>
-      <a href="https://app.cesimulation.it.com" class="cta" target="_blank" rel="noopener">Launch App &rarr;</a>
+      <a href="#" data-app-link class="cta" target="_blank" rel="noopener">Launch App &rarr;</a>
     </div>
   </div>
 </nav>
@@ -300,9 +325,56 @@
 
 <footer>
   <div class="container">
-    <p>CE Simulation &mdash; <a href="index.html">Home</a> &middot; <a href="simulator.html">Simulator</a> &middot; <a href="https://app.cesimulation.it.com" target="_blank" rel="noopener">Launch App</a></p>
+    <p>CE Simulation &mdash; <a href="index.html">Home</a> &middot; <a href="simulator.html">Simulator</a> &middot; <a href="#" data-app-link target="_blank" rel="noopener">Launch App</a></p>
   </div>
 </footer>
+
+<script>
+function getPortalRootOrigin() {
+  var h = window.location.hostname || '';
+  if (!h.startsWith('portal.')) return null;
+  var rootHost = h.replace(/^portal\./, '').trim();
+  if (!rootHost || rootHost.indexOf('.') === -1) return null;
+  return window.location.protocol + '//' + rootHost;
+}
+
+function inferAppOrigin() {
+  var h = window.location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:3000';
+  var rootOrigin = getPortalRootOrigin();
+  if (rootOrigin) return rootOrigin;
+  return window.location.origin;
+}
+document.querySelectorAll('[data-app-link]').forEach(function(el) {
+  el.href = inferAppOrigin();
+});
+
+
+(function setupMobileMenu() {
+  var button = document.getElementById('mobileMenuButton');
+  var links = document.getElementById('primaryNavLinks') || document.querySelector('nav .links');
+  if (!button || !links) return;
+  function closeMenu() {
+    links.classList.remove('open');
+    button.setAttribute('aria-expanded', 'false');
+  }
+  function toggleMenu() {
+    var isOpen = links.classList.toggle('open');
+    button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+  button.addEventListener('click', toggleMenu);
+  document.querySelectorAll('nav .links a').forEach(function(a) {
+    a.addEventListener('click', closeMenu);
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeMenu();
+  });
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 640) closeMenu();
+  });
+})();
+
+</script>
 
 </body>
 </html>
