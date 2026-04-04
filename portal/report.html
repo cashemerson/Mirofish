@@ -330,10 +330,19 @@
 </footer>
 
 <script>
+function getPortalRootOrigin() {
+  var h = window.location.hostname || '';
+  if (!h.startsWith('portal.')) return null;
+  var rootHost = h.replace(/^portal\./, '').trim();
+  if (!rootHost || rootHost.indexOf('.') === -1) return null;
+  return window.location.protocol + '//' + rootHost;
+}
+
 function inferAppOrigin() {
   var h = window.location.hostname;
   if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:3000';
-  if (h.startsWith('portal.')) { var rootHost = h.replace(/^portal\./, ''); if (rootHost) return window.location.protocol + '//' + rootHost; }
+  var rootOrigin = getPortalRootOrigin();
+  if (rootOrigin) return rootOrigin;
   return window.location.origin;
 }
 document.querySelectorAll('[data-app-link]').forEach(function(el) {

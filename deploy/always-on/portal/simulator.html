@@ -273,17 +273,27 @@
 </footer>
 
 <script>
+function getPortalRootOrigin() {
+  var h = window.location.hostname || '';
+  if (!h.startsWith('portal.')) return null;
+  var rootHost = h.replace(/^portal\./, '').trim();
+  if (!rootHost || rootHost.indexOf('.') === -1) return null;
+  return window.location.protocol + '//' + rootHost;
+}
+
 function inferAppOrigin() {
   var h = window.location.hostname;
   if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:3000';
-  if (h.startsWith('portal.')) return window.location.protocol + '//' + h.replace(/^portal\./, '');
+  var rootOrigin = getPortalRootOrigin();
+  if (rootOrigin) return rootOrigin;
   return window.location.origin;
 }
 
 var API = (function() {
   var h = window.location.hostname;
   if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:5001';
-  if (h.startsWith('portal.')) return window.location.protocol + '//' + h.replace(/^portal\./, '');
+  var rootOrigin = getPortalRootOrigin();
+  if (rootOrigin) return rootOrigin;
   return window.location.origin;
 })();
 
