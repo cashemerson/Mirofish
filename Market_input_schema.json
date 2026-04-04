@@ -1,0 +1,597 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mirofish.local/schemas/market_input_schema.json",
+  "title": "Mirofish Market Input Schema",
+  "description": "Canonical input contract for evaluating sportsbook and binary event opportunities.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at_utc",
+    "market",
+    "pricing",
+    "model",
+    "risk",
+    "execution",
+    "portfolio_context",
+    "data_quality"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "examples": [
+        "v1.0.0"
+      ]
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "trace_id": {
+      "type": "string",
+      "description": "Unique ID for full decision traceability."
+    },
+    "market": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "market_id",
+        "sport",
+        "league",
+        "market_type",
+        "event",
+        "selection"
+      ],
+      "properties": {
+        "market_id": {
+          "type": "string"
+        },
+        "sport": {
+          "type": "string",
+          "enum": [
+            "baseball",
+            "football",
+            "basketball",
+            "hockey",
+            "soccer",
+            "other"
+          ]
+        },
+        "league": {
+          "type": "string",
+          "examples": [
+            "MLB",
+            "NFL",
+            "NBA",
+            "NHL"
+          ]
+        },
+        "market_type": {
+          "type": "string",
+          "enum": [
+            "moneyline",
+            "spread",
+            "total",
+            "player_prop",
+            "team_prop",
+            "futures",
+            "binary_event"
+          ]
+        },
+        "period": {
+          "type": "string",
+          "enum": [
+            "full_game",
+            "first_half",
+            "first_period",
+            "first_5_innings",
+            "other"
+          ],
+          "default": "full_game"
+        },
+        "event": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event_id",
+            "starts_at_utc"
+          ],
+          "properties": {
+            "event_id": {
+              "type": "string"
+            },
+            "starts_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "home_team": {
+              "type": "string"
+            },
+            "away_team": {
+              "type": "string"
+            },
+            "venue": {
+              "type": "string"
+            },
+            "state_or_jurisdiction": {
+              "type": "string",
+              "description": "Regulatory context for availability/compliance."
+            }
+          }
+        },
+        "selection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "side"
+          ],
+          "properties": {
+            "side": {
+              "type": "string",
+              "description": "Examples: home, away, over, under, yes, no."
+            },
+            "line": {
+              "type": "number",
+              "description": "Spread/total/prop line when relevant."
+            },
+            "player_name": {
+              "type": "string"
+            },
+            "prop_stat": {
+              "type": "string",
+              "examples": [
+                "hits",
+                "strikeouts",
+                "points",
+                "rebounds"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_at_utc",
+        "primary_venue",
+        "odds"
+      ],
+      "properties": {
+        "snapshot_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "primary_venue": {
+          "type": "string",
+          "examples": [
+            "draftkings",
+            "fanduel",
+            "betmgm",
+            "caesars",
+            "espn_bet",
+            "kalshi"
+          ]
+        },
+        "odds": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "american",
+            "decimal",
+            "implied_probability_raw"
+          ],
+          "properties": {
+            "american": {
+              "type": "integer"
+            },
+            "decimal": {
+              "type": "number",
+              "minimum": 1
+            },
+            "implied_probability_raw": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "implied_probability_no_vig": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "spread_bps": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Venue spread proxy in basis points where supported."
+            }
+          }
+        },
+        "line_shopping": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "best_price_american": {
+              "type": "integer"
+            },
+            "best_price_venue": {
+              "type": "string"
+            },
+            "books_checked_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "price_dispersion_bps": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "kalshi": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contract_ticker": {
+              "type": "string"
+            },
+            "side": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            },
+            "price": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "best_bid": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "best_ask": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "top_level_depth_contracts": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "estimated_fee_per_contract": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_name",
+        "model_version",
+        "predicted_probability",
+        "confidence_interval",
+        "expected_value"
+      ],
+      "properties": {
+        "model_name": {
+          "type": "string"
+        },
+        "model_version": {
+          "type": "string"
+        },
+        "predicted_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "confidence_interval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "upper",
+            "level"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "upper": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "level": {
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 0.999
+            }
+          }
+        },
+        "market_prior_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "blended_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "edge": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "edge_probability_points",
+            "edge_bps"
+          ],
+          "properties": {
+            "edge_probability_points": {
+              "type": "number"
+            },
+            "edge_bps": {
+              "type": "number"
+            }
+          }
+        },
+        "expected_value": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ev_per_unit_stake",
+            "ev_after_costs"
+          ],
+          "properties": {
+            "ev_per_unit_stake": {
+              "type": "number"
+            },
+            "ev_after_costs": {
+              "type": "number"
+            },
+            "fee_cost": {
+              "type": "number",
+              "minimum": 0
+            },
+            "expected_slippage_cost": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stake_recommendation",
+        "risk_checks"
+      ],
+      "properties": {
+        "stake_recommendation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "recommended_units"
+          ],
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": [
+                "fractional_kelly",
+                "flat_stake",
+                "custom"
+              ]
+            },
+            "kelly_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "recommended_units": {
+              "type": "number",
+              "minimum": 0
+            },
+            "recommended_stake_usd": {
+              "type": "number",
+              "minimum": 0
+            },
+            "max_allowed_stake_usd": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "risk_checks": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "within_per_bet_limit",
+            "within_daily_drawdown_limit",
+            "within_correlation_limit",
+            "within_league_exposure_limit"
+          ],
+          "properties": {
+            "within_per_bet_limit": {
+              "type": "boolean"
+            },
+            "within_daily_drawdown_limit": {
+              "type": "boolean"
+            },
+            "within_correlation_limit": {
+              "type": "boolean"
+            },
+            "within_league_exposure_limit": {
+              "type": "boolean"
+            },
+            "risk_notes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "abort_conditions"
+      ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "place_bet",
+            "place_limit_order",
+            "watch_only",
+            "pass"
+          ]
+        },
+        "target_venue": {
+          "type": "string"
+        },
+        "target_price_american": {
+          "type": "integer"
+        },
+        "target_decimal_price": {
+          "type": "number",
+          "minimum": 1
+        },
+        "target_kalshi_price": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_slippage_bps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_liquidity_contracts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "time_in_force_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "abort_conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "examples": [
+              "stale_data",
+              "line_moved_against_threshold",
+              "risk_limit_exceeded",
+              "insufficient_liquidity"
+            ]
+          }
+        }
+      }
+    },
+    "portfolio_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bankroll_usd",
+        "open_risk_usd",
+        "correlated_exposure_usd"
+      ],
+      "properties": {
+        "bankroll_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "open_risk_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "correlated_exposure_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "league_exposure": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "league",
+              "exposure_usd"
+            ],
+            "properties": {
+              "league": {
+                "type": "string"
+              },
+              "exposure_usd": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "data_quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "freshness_seconds",
+        "is_stale",
+        "sources"
+      ],
+      "properties": {
+        "freshness_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_allowed_freshness_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "is_stale": {
+          "type": "boolean"
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "snapshot_at_utc"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "snapshot_at_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "latency_ms": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

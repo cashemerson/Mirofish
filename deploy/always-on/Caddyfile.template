@@ -1,0 +1,45 @@
+__APP_HOSTS__ {
+  encode zstd gzip
+  tls __ACME_EMAIL__
+
+  @health path /health
+  handle @health {
+    reverse_proxy mirofish:5001 {
+      header_up Host localhost
+    }
+  }
+
+  @api path /api/*
+  handle @api {
+    request_body {
+      max_size __API_MAX_UPLOAD_SIZE__
+    }
+    reverse_proxy mirofish:5001 {
+      header_up Host localhost
+      flush_interval -1
+      transport http {
+        dial_timeout 10s
+        response_header_timeout __API_RESPONSE_HEADER_TIMEOUT__
+        read_timeout __API_READ_TIMEOUT__
+        write_timeout __API_WRITE_TIMEOUT__
+      }
+    }
+  }
+
+  reverse_proxy mirofish:3000 {
+    header_up Host localhost
+    flush_interval -1
+    transport http {
+      dial_timeout 10s
+      response_header_timeout 120s
+      read_timeout 120s
+      write_timeout 120s
+    }
+  }
+}
+
+__PORTAL_HOSTS__ {
+  encode zstd gzip
+  tls __ACME_EMAIL__
+  reverse_proxy portal:8080
+}

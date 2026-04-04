@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sports Betting Intelligence — CE Simulation</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #06090f; --card: #0d1117; --elevated: #1c2333;
+      --border: #21262d; --text: #e6edf3; --muted: #8b949e;
+      --dim: #6e7681; --accent: #58a6ff; --green: #3fb950;
+      --orange: #d29922; --red: #f85149; --purple: #bc8cff;
+      --radius: 12px; --mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.65; }
+    .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(6,9,15,.85); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border); padding: 0 24px;
+    }
+    nav .inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    nav .logo { font-size: 20px; font-weight: 700; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+    nav .logo .icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--purple)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    nav .links { display: flex; gap: 8px; }
+    nav .links a { color: var(--muted); text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; transition: all .15s; }
+    nav .links a:hover { color: var(--text); background: var(--elevated); }
+    nav .links a.cta { background: var(--accent); color: #fff; }
+
+    .hero-sm { padding: 60px 0 40px; text-align: center; }
+    .hero-sm h1 { font-size: 36px; font-weight: 700; margin-bottom: 12px; }
+    .hero-sm p { color: var(--muted); font-size: 16px; }
+
+    .report { padding: 0 0 80px; }
+    .report h2 { font-size: 22px; font-weight: 700; margin: 40px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); color: var(--accent); }
+    .report h3 { font-size: 17px; font-weight: 600; margin: 24px 0 8px; color: var(--text); }
+    .report p { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+    .report ul, .report ol { padding-left: 24px; margin-bottom: 12px; }
+    .report li { color: var(--muted); font-size: 14px; margin-bottom: 4px; }
+
+    .formula {
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 14px; font-family: var(--mono); font-size: 13px;
+      color: var(--green); margin-bottom: 8px; overflow-x: auto;
+    }
+
+    .report .table-scroll { overflow-x: auto; margin: 12px 0 20px; }
+    .report table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .report th { text-align: left; padding: 10px 14px; background: var(--card); border: 1px solid var(--border); font-weight: 600; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
+    .report td { padding: 10px 14px; border: 1px solid var(--border); color: var(--text); }
+    .report tr:hover td { background: rgba(88,166,255,.04); }
+
+    .directive { border: 1px solid var(--accent); background: rgba(88,166,255,.06); padding: 20px; border-radius: var(--radius); margin: 16px 0; }
+    .directive p { color: var(--text); }
+    .directive ol { padding-left: 24px; }
+    .directive li { color: var(--text); font-size: 14px; margin-bottom: 6px; }
+
+    .toc { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin: 24px 0; }
+    .toc h3 { margin-top: 0; font-size: 16px; color: var(--text); }
+    .toc ol { padding-left: 20px; }
+    .toc li { margin-bottom: 4px; }
+    .toc a { color: var(--accent); text-decoration: none; font-size: 14px; }
+    .toc a:hover { text-decoration: underline; }
+
+    .meta-bar { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 8px; }
+    .meta-item { font-size: 13px; color: var(--dim); }
+    .meta-item strong { color: var(--muted); }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 0; text-align: center; color: var(--dim); font-size: 13px; }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    @media (max-width: 640px) { .hero-sm h1 { font-size: 28px; } }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<nav>
+  <div class="inner">
+    <a href="index.html" class="logo"><span class="icon">&#x1F41F;</span> CE Simulation</a>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="index.html#workspace">Workspace</a>
+      <a href="simulator.html">Simulator</a>
+      <a href="https://app.cesimulation.it.com" class="cta" target="_blank" rel="noopener">Launch App &rarr;</a>
+    </div>
+  </div>
+</nav>
+
+<div class="hero-sm">
+  <div class="container">
+    <h1>Sports Betting Intelligence Report</h1>
+    <p>Comprehensive framework for the Mirofish prediction and execution engine</p>
+    <div class="meta-bar" style="justify-content:center; margin-top:16px;">
+      <span class="meta-item"><strong>Version:</strong> 1.0</span>
+      <span class="meta-item"><strong>Date:</strong> 2026-04-02</span>
+      <span class="meta-item"><strong>Target:</strong> Long-run risk-adjusted growth</span>
+    </div>
+  </div>
+</div>
+
+<div class="report">
+  <div class="container">
+
+    <div class="toc">
+      <h3>Table of Contents</h3>
+      <ol>
+        <li><a href="#s1">Executive Objective</a></li>
+        <li><a href="#s2">Legal and Operational Guardrails</a></li>
+        <li><a href="#s3">US Market Context</a></li>
+        <li><a href="#s4">Kalshi / Event-Contract Intelligence</a></li>
+        <li><a href="#s5">Core Sportsbook Math Standards</a></li>
+        <li><a href="#s6">Professional Trading Mindset</a></li>
+        <li><a href="#s7">MLB Modern History and Baselines</a></li>
+        <li><a href="#s8">What High-Stakes Officials Consider</a></li>
+        <li><a href="#s9">System Architecture Requirements</a></li>
+        <li><a href="#s10">Risk Policy</a></li>
+        <li><a href="#s11">Performance KPIs</a></li>
+        <li><a href="#s12">Failure Modes and Red-Team Checklist</a></li>
+        <li><a href="#s13">Direct Mirofish Directive</a></li>
+      </ol>
+    </div>
+
+    <h2 id="s1">1) Executive Objective</h2>
+    <p>Mirofish must optimize for <strong style="color:var(--text)">long-run risk-adjusted edge</strong>, not short-run hit rate.</p>
+    <ol>
+      <li>Generate calibrated probabilities (not just picks).</li>
+      <li>Convert every opportunity into fee/vig-adjusted EV.</li>
+      <li>Execute only when edge survives friction (limits, liquidity, slippage, fees).</li>
+      <li>Protect bankroll through strict risk controls and correlation-aware sizing.</li>
+      <li>Continuously learn from CLV, realized PnL, and model calibration drift.</li>
+    </ol>
+
+    <h2 id="s2">2) Legal and Operational Guardrails</h2>
+    <ul>
+      <li>Operate only in legally permitted jurisdictions and products.</li>
+      <li>Respect book limits, market terms, and prohibited use clauses.</li>
+      <li>Keep full audit trails for data source, timestamp, model version, and execution rationale.</li>
+      <li>Treat all outputs as probabilistic recommendations, never guarantees.</li>
+    </ul>
+
+    <h2 id="s3">3) US Market Context</h2>
+    <h3>Post-2018 structure</h3>
+    <p>The US market is fragmented by state regulation and operator footprint. This fragmentation creates opportunity through line shopping, timing mismatches across books, stale derivatives/props, and varying limit/risk tolerances.</p>
+    <h3>Common books (state-dependent)</h3>
+    <ul>
+      <li>FanDuel, DraftKings, BetMGM, Caesars, ESPN BET</li>
+      <li>Fanatics, BetRivers, bet365, Hard Rock Bet</li>
+    </ul>
+    <h3>Exchange/event-contract venue</h3>
+    <ul><li>Kalshi (binary YES/NO contracts, CFTC-regulated model)</li></ul>
+
+    <h2 id="s4">4) Kalshi / Event-Contract Intelligence</h2>
+    <h3>Core mechanics</h3>
+    <ul>
+      <li>Binary contracts settle to <strong style="color:var(--text)">$1 or $0</strong>.</li>
+      <li>Contract price (e.g. 0.62) approximates market implied probability before costs.</li>
+      <li>YES/NO are tradable before settlement; order-book quality matters.</li>
+    </ul>
+    <h3>EV treatment</h3>
+    <div class="formula">EV_yes = p_model - c - f</div>
+    <div class="formula">EV_no = (1 - p_model) - (1 - c) - f</div>
+    <div class="formula">Break-even YES probability = c + f</div>
+    <p>Always fee-normalize and account for spread, depth, and slippage.</p>
+
+    <h2 id="s5">5) Core Sportsbook Math Standards</h2>
+    <h3>American odds to implied probability</h3>
+    <div class="formula">If +A: p_raw = 100 / (A + 100)</div>
+    <div class="formula">If -A: p_raw = |A| / (|A| + 100)</div>
+    <h3>No-vig conversion (2-way markets)</h3>
+    <div class="formula">p1_fair = p1_raw / (p1_raw + p2_raw)</div>
+    <h3>Expected value</h3>
+    <div class="formula">EV_per_$1 = p * (d - 1) - (1 - p)</div>
+    <p>Only enter when EV remains positive after fees, slippage, and uncertainty adjustments.</p>
+
+    <h2 id="s6">6) Professional Trading Mindset</h2>
+    <h3>As an elite bettor</h3>
+    <ul>
+      <li>Demand quantified edge for every entry.</li>
+      <li>Pass when edge is unclear.</li>
+      <li>Prefer repeatable small edges over volatile swings.</li>
+      <li>Prioritize CLV as a process metric.</li>
+    </ul>
+    <h3>As a Vegas high-stakes risk manager</h3>
+    <ul>
+      <li>Track liability concentration by side/game/league/day.</li>
+      <li>Manage correlation risk (same-team, same-game, derivative chains).</li>
+      <li>Reprice aggressively during injuries/starter/weather shocks.</li>
+    </ul>
+    <h3>As an exchange microstructure trader</h3>
+    <ul>
+      <li>Incorporate spread, depth, queue position, and fill probability.</li>
+      <li>Prefer limit-style execution where practical.</li>
+      <li>Treat execution quality as part of model quality.</li>
+    </ul>
+
+    <h2 id="s7">7) MLB Modern History and Updated Baselines</h2>
+    <h3>2025 MLB League Averages (per team game)</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Metric</th><th>Value</th><th>Metric</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Runs/Game</td><td>4.45</td><td>HR/Game</td><td>1.16</td></tr>
+        <tr><td>BA</td><td>.245</td><td>BB/Game</td><td>3.16</td></tr>
+        <tr><td>OBP</td><td>.315</td><td>SO/Game</td><td>8.36</td></tr>
+        <tr><td>SLG</td><td>.404</td><td>SB/Game</td><td>0.71</td></tr>
+        <tr><td>OPS</td><td>.719</td><td></td><td></td></tr>
+      </tbody>
+    </table></div>
+    <h3>2025 Pitching Baseline</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Metric</th><th>Value</th><th>Metric</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>ERA</td><td>4.16</td><td>K/9</td><td>8.5</td></tr>
+        <tr><td>FIP</td><td>4.16</td><td>BB/9</td><td>3.2</td></tr>
+        <tr><td>WHIP</td><td>1.289</td><td>HR/9</td><td>1.2</td></tr>
+      </tbody>
+    </table></div>
+
+    <h2 id="s8">8) What High-Stakes Officials Consider</h2>
+    <ul>
+      <li>Who is betting (sharp/public profile), not just what is bet.</li>
+      <li>Whether price moves are informational or liability-balancing.</li>
+      <li>Correlation stacking risk inside SGP and derivative markets.</li>
+      <li>Latency/stale feed exposure during lineup/injury windows.</li>
+      <li>Manual trader workflow/shift timing and operational blind spots.</li>
+    </ul>
+
+    <h2 id="s9">9) System Architecture Requirements</h2>
+    <h3>Data layer</h3>
+    <ul>
+      <li>Multi-book odds snapshots with timestamps</li>
+      <li>Kalshi top-of-book and depth snapshots</li>
+      <li>Injury, lineup, starter/goalie, weather, travel/rest feeds</li>
+      <li>Closing lines for CLV benchmarking</li>
+    </ul>
+    <h3>Feature layer</h3>
+    <ul>
+      <li>No-vig market probabilities and cross-book dispersion</li>
+      <li>News-shock features and time-to-event decay</li>
+      <li>Liquidity and expected slippage proxies</li>
+    </ul>
+    <h3>Model layer</h3>
+    <ul>
+      <li>Separate models by market type (moneyline/spread/total/props/binary events)</li>
+      <li>Probability calibration (isotonic or Platt)</li>
+      <li>Blend model output with market prior when appropriate</li>
+    </ul>
+
+    <h2 id="s10">10) Risk Policy</h2>
+    <ul>
+      <li>Per-position max stake (% bankroll)</li>
+      <li>Per-event and correlated exposure caps</li>
+      <li>Per-league and per-day exposure controls</li>
+      <li>Daily drawdown circuit breaker and cool-down logic</li>
+      <li>Stale-data and max-slippage abort conditions</li>
+    </ul>
+
+    <h2 id="s11">11) Performance KPIs</h2>
+    <table>
+      <thead><tr><th>Category</th><th>KPIs</th></tr></thead>
+      <tbody>
+        <tr><td>Primary</td><td>CLV, ROI by market type, Risk-adjusted return, Max drawdown</td></tr>
+        <tr><td>Calibration</td><td>Brier score, Log loss, Reliability curve drift</td></tr>
+        <tr><td>Execution</td><td>Fill rate, Average slippage, Rejection rate by venue</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="s12">12) Failure Modes and Red-Team Checklist</h2>
+    <ol>
+      <li>Overfitting short-term noise.</li>
+      <li>Ignoring fees and slippage.</li>
+      <li>Correlation blow-ups (especially props/SGP clusters).</li>
+      <li>Data latency during injury/lineup windows.</li>
+      <li>Model calibration drift not corrected in time.</li>
+      <li>Size escalation after losses.</li>
+      <li>Assuming liquidity exists at desired size.</li>
+    </ol>
+    <p>Mitigations: freshness checks, automatic confidence decay, strict exposure graphing, continual recalibration, and hard risk circuit breakers.</p>
+
+    <h2 id="s13">13) Direct Mirofish Directive</h2>
+    <div class="directive">
+      <p><strong style="color:var(--accent)">For each candidate market, output:</strong></p>
+      <ol>
+        <li>Model probability with confidence interval.</li>
+        <li>Market implied probability (vig/fee adjusted).</li>
+        <li>EV after all explicit costs.</li>
+        <li>Stake recommendation (fractional Kelly + hard caps).</li>
+        <li>Correlation impact on existing open portfolio.</li>
+        <li>Abort decision if freshness/slippage/risk rules fail.</li>
+      </ol>
+      <p style="margin-top:12px"><strong style="color:var(--green)">Optimization target:</strong> long-run risk-adjusted growth, not short-run win rate.</p>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <p>CE Simulation &mdash; <a href="index.html">Home</a> &middot; <a href="simulator.html">Simulator</a> &middot; <a href="https://app.cesimulation.it.com" target="_blank" rel="noopener">Launch App</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
