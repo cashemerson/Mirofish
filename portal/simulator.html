@@ -26,6 +26,7 @@
     nav .links a { color: var(--muted); padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; transition: all .15s; }
     nav .links a:hover { color: var(--text); background: var(--elevated); }
     nav .links a.cta { background: var(--accent); color: #fff; }
+    .mobile-toggle { display: none; background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; }
 
     .hero-sm { padding: 60px 0 40px; text-align: center; }
     .hero-sm h1 { font-size: 36px; font-weight: 700; margin-bottom: 12px; }
@@ -34,7 +35,32 @@
     .section { padding: 40px 0 80px; }
     h2 { font-size: 24px; margin-bottom: 20px; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .container { padding: 0 16px; }
+      .hero-sm { padding: 44px 0 28px; }
+      .hero-sm h1 { font-size: 30px; }
+      .wizard-steps { overflow-x: auto; }
+      .wstep { min-width: 120px; white-space: nowrap; }
+      .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .stat { min-width: 0; }
+      nav .links a { padding: 7px 10px; font-size: 13px; }
+    }
+    @media (max-width: 640px) {
+      .mobile-toggle { display: block; }
+      nav .links {
+        display: none; position: absolute; top: 64px; left: 0; right: 0;
+        background: var(--bg); border-bottom: 1px solid var(--border);
+        flex-direction: column; padding: 12px 16px; z-index: 200;
+      }
+      nav .links.open { display: flex; }
+      nav .links a { width: 100%; }
+      .hero-sm h1 { font-size: 26px; }
+      .section { padding: 28px 0 56px; }
+      .card { padding: 18px; }
+      .result-box { max-height: 320px; }
+      .stat-row { grid-template-columns: 1fr; }
+    }
 
     .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 24px; }
     .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
@@ -82,6 +108,7 @@
 <nav>
   <div class="inner">
     <a href="index.html" class="logo"><span class="icon">&#x1F41F;</span> CE Simulation</a>
+    <button class="mobile-toggle" onclick="document.querySelector('.links').classList.toggle('open')" aria-label="Menu">&#9776;</button>
     <div class="links">
       <a href="index.html">Home</a>
       <a href="report.html">Intelligence</a>
@@ -296,6 +323,14 @@ var API = (function() {
 
 document.querySelectorAll('[data-app-link]').forEach(function(el) {
   el.href = inferAppOrigin();
+});
+
+// Close mobile menu after navigation click for better UX on small screens
+document.querySelectorAll('nav .links a').forEach(function(a) {
+  a.addEventListener('click', function() {
+    var links = document.querySelector('nav .links');
+    if (links && links.classList.contains('open')) links.classList.remove('open');
+  });
 });
 
 function esc(s) { if (s == null) return ''; var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
@@ -689,6 +724,23 @@ function calcVig() {
   document.getElementById('vigPct').textContent = (vig * 100).toFixed(1) + '%';
   document.getElementById('overround').textContent = (total * 100).toFixed(1) + '%';
 }
+
+['odds', 'modelProb', 'feeCost'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', calcEV);
+  el.addEventListener('keydown', function(e) { if (e.key === 'Enter') calcEV(); });
+});
+
+['vigA', 'vigB'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', calcVig);
+  el.addEventListener('keydown', function(e) { if (e.key === 'Enter') calcVig(); });
+});
+
+calcEV();
+calcVig();
 </script>
 
 </body>

@@ -1165,6 +1165,14 @@ document.querySelectorAll('.tab').forEach(function(tab) {
 });
 
 window.addEventListener('load', autoCheck);
+
+// Close mobile menu after navigation click for better UX on small screens
+document.querySelectorAll('nav .links a').forEach(function(a) {
+  a.addEventListener('click', function() {
+    var links = document.querySelector('nav .links');
+    if (links && links.classList.contains('open')) links.classList.remove('open');
+  });
+});
 </script>
 
 </body>
