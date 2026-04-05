@@ -67,6 +67,8 @@ Edit `.env` and set:
 - `MIROFISH_DOMAIN=app.your-domain,your-domain`
 - `PORTAL_DOMAIN=portal.your-domain`
 - `ACME_EMAIL=you@example.com`
+- use real values only (no placeholders like `replace_with_*` / `example.com`)
+- `ACME_EMAIL` must be a valid email format (`name@domain.tld`)
 - optional but recommended for large ontology/doc uploads:
   - `API_MAX_UPLOAD_SIZE=200MB`
   - `API_RESPONSE_HEADER_TIMEOUT=600s`
@@ -153,6 +155,8 @@ Run preflight and regenerate Caddyfile:
 
 The validator catches:
 - missing required env keys
+- placeholder env values left from `.env.example`
+- invalid ACME email format
 - Caddyfile template rendering issues
 - broken Compose syntax
 

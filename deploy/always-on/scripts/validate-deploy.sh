@@ -72,12 +72,35 @@ validate_domain_list() {
   fi
 }
 
+validate_not_placeholder() {
+  local name="$1"
+  local value="$2"
+  local lowered
+  lowered="$(printf '%s' "${value}" | tr '[:upper:]' '[:lower:]')"
+  if [[ "${lowered}" == *"replace_with_"* || "${lowered}" == *"example.com"* ]]; then
+    fail "${name} still contains placeholder values: ${value}"
+  fi
+}
+
+validate_email() {
+  local name="$1"
+  local value="$2"
+  if ! [[ "${value}" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+    fail "${name} must be a valid email address (got: ${value})"
+  fi
+}
+
 main() {
   require_file "${ENV_FILE}"
   require_file "${BASE_COMPOSE}"
 
   require_var "LLM_API_KEY"
   require_var "ZEP_API_KEY"
+  local llm_api_key zep_api_key
+  llm_api_key="$(read_var "LLM_API_KEY")"
+  zep_api_key="$(read_var "ZEP_API_KEY")"
+  validate_not_placeholder "LLM_API_KEY" "${llm_api_key}"
+  validate_not_placeholder "ZEP_API_KEY" "${zep_api_key}"
 
   if ! command -v docker >/dev/null 2>&1; then
     fail "docker is not installed"
@@ -111,6 +134,9 @@ main() {
 
       validate_domain_list "MIROFISH_DOMAIN" "${app_domains}"
       validate_domain_list "PORTAL_DOMAIN" "${portal_domains}"
+      validate_not_placeholder "MIROFISH_DOMAIN" "${app_domains}"
+      validate_not_placeholder "PORTAL_DOMAIN" "${portal_domains}"
+      validate_email "ACME_EMAIL" "${acme_email}"
 
       (
         cd "${ROOT_DIR}"
