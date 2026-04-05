@@ -118,6 +118,11 @@ curl -skI https://portal.cesimulation.it.com/
 curl -sk https://cesimulation.it.com/api/simulation/history?limit=1
 ```
 
+Portal pages (`index.html`, `simulator.html`) resolve API base in this order:
+1) `?api=https://...` query parameter
+2) saved browser config `mirofish_portal_config_v1.apiUrl`
+3) auto-derive from hostname (`portal.<domain>` -> `https://<domain>`)
+
 ---
 
 ## One-command bootstrap (alternative)

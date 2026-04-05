@@ -115,6 +115,11 @@ If the UI shows `Network Error` during file upload or ontology generation, run:
 
 This script verifies DNS, TLS reachability, container health, and endpoint responses, then prints the most relevant logs from `caddy` and `mirofish`.
 
+API base URL resolution used by portal pages:
+- `?api=https://your-domain` query parameter (highest priority)
+- saved browser config key `mirofish_portal_config_v1.apiUrl` (if present)
+- auto-derive from hostname (`portal.<domain>` -> `https://<domain>`)
+
 If your deployment has drifted due to copy/paste issues, run one-command repair:
 
 ```bash
