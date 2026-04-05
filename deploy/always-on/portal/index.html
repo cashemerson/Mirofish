@@ -882,10 +882,19 @@
 
 <script>
 const API_BASE = (function() {
+  const queryApi = new URLSearchParams(window.location.search).get('api');
+  if (queryApi) return queryApi.replace(/\/+$/, '');
+  try {
+    const raw = localStorage.getItem('mirofish_portal_config_v1');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.apiUrl) return String(parsed.apiUrl).replace(/\/+$/, '');
+    }
+  } catch (_) {}
   const h = window.location.hostname;
-  if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:5001';
-  if (h === 'portal.cesimulation.it.com') return 'https://cesimulation.it.com';
-  if (h.endsWith('.cesimulation.it.com') || h === 'cesimulation.it.com') return 'https://cesimulation.it.com';
+  const p = window.location.protocol;
+  if (h === 'localhost' || h === '127.0.0.1') return p + '//localhost:5001';
+  if (h.startsWith('portal.')) return p + '//' + h.slice('portal.'.length);
   return window.location.origin;
 })();
 

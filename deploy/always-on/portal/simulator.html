@@ -274,10 +274,19 @@
 
 <script>
 var API = (function() {
+  var queryApi = new URLSearchParams(window.location.search).get('api');
+  if (queryApi) return queryApi.replace(/\/+$/, '');
+  try {
+    var raw = localStorage.getItem('mirofish_portal_config_v1');
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && parsed.apiUrl) return String(parsed.apiUrl).replace(/\/+$/, '');
+    }
+  } catch (_) {}
   var h = window.location.hostname;
-  if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:5001';
-  if (h === 'portal.cesimulation.it.com') return 'https://cesimulation.it.com';
-  if (h.endsWith('.cesimulation.it.com') || h === 'cesimulation.it.com') return 'https://cesimulation.it.com';
+  var p = window.location.protocol;
+  if (h === 'localhost' || h === '127.0.0.1') return p + '//localhost:5001';
+  if (h.indexOf('portal.') === 0) return p + '//' + h.slice('portal.'.length);
   return window.location.origin;
 })();
 
