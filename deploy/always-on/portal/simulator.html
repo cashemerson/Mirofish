@@ -274,7 +274,7 @@
 </footer>
 
 <script>
-var API = (function() {
+function resolveApiBase() {
   var queryApi = new URLSearchParams(window.location.search).get('api');
   if (queryApi) return queryApi.replace(/\/+$/, '');
   try {
@@ -290,7 +290,9 @@ var API = (function() {
   if (h.startsWith('portal.')) return p + '//' + h.slice('portal.'.length);
   if (window.location.port === '8080') return p + '//' + h + ':5001';
   return window.location.origin;
-})();
+}
+
+var API = resolveApiBase();
 
 function esc(s) { if (s == null) return ''; var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 function timedFetch(url, opts, ms) {

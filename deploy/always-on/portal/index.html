@@ -881,7 +881,7 @@
 </footer>
 
 <script>
-const API_BASE = (function() {
+function resolveApiBase() {
   const queryApi = new URLSearchParams(window.location.search).get('api');
   if (queryApi) return queryApi.replace(/\/+$/, '');
   try {
@@ -897,7 +897,9 @@ const API_BASE = (function() {
   if (h.startsWith('portal.')) return p + '//' + h.slice('portal.'.length);
   if (window.location.port === '8080') return p + '//' + h + ':5001';
   return window.location.origin;
-})();
+}
+
+const API_BASE = resolveApiBase();
 
 const FETCH_TIMEOUT = 15000;
 
