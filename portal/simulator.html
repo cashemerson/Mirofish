@@ -145,6 +145,7 @@
         <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">Review the extracted entity types and relationships. Proceed to build the knowledge graph.</p>
         <div class="result-box" id="ontologyView"><span class="d">Ontology will appear here after generation...</span></div>
         <div style="margin-top:16px; display:flex; gap:12px;">
+          <button class="btn" id="ontologyRawBtn" style="display:none;">Show Raw JSON</button>
           <button class="btn btn-p" onclick="wizardBuildGraph()" id="wBuildBtn">Build Knowledge Graph &rarr;</button>
           <button class="btn" onclick="showStep(0)">&larr; Back to Upload</button>
         </div>
@@ -158,6 +159,7 @@
         <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">The Zep knowledge graph is being built from your documents. This may take a few minutes.</p>
         <div class="result-box" id="graphView"><span class="d">Graph build status will appear here...</span></div>
         <div style="margin-top:16px; display:flex; gap:12px;">
+          <button class="btn" id="graphRawBtn" style="display:none;">Show Raw JSON</button>
           <button class="btn btn-p" onclick="wizardCreateSim()" id="wSimBtn">Create Simulation &rarr;</button>
           <button class="btn" onclick="showStep(1)">&larr; Back</button>
         </div>
@@ -184,6 +186,7 @@
         </div>
         <div class="result-box" id="simView"><span class="d">Simulation output will stream here...</span></div>
         <div style="margin-top:16px; display:flex; gap:12px;">
+          <button class="btn" id="simRawBtn" style="display:none;">Show Raw JSON</button>
           <button class="btn btn-g" onclick="wizardStartSim()" id="wStartBtn">Start Simulation &#x25B6;</button>
           <button class="btn btn-r" onclick="wizardStopSim()" id="wStopBtn" style="display:none;">Stop &#x25A0;</button>
           <button class="btn" onclick="cancelCurrentRun()" id="wCancelBtn">Cancel Current Run</button>
@@ -200,6 +203,7 @@
         <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">The ReportAgent is analyzing simulation results and generating your prediction report.</p>
         <div class="result-box" id="reportView"><span class="d">Report content will appear here...</span></div>
         <div style="margin-top:16px; display:flex; gap:12px;">
+          <button class="btn" id="reportRawBtn" style="display:none;">Show Raw JSON</button>
           <button class="btn" onclick="showStep(3)">&larr; Back</button>
           <button class="btn btn-p" id="wDownloadBtn" style="display:none;">Download Report</button>
         </div>
@@ -335,9 +339,67 @@ var pollAbort = null;
 var pollState = { task: 0, sim: 0, report: 0 };
 var POLL_INTERVAL_MS = 5000;
 var POLL_BACKOFF_MAX_MS = 30000;
+var LOG_MAX_LINES = 100;
+var pollLogBuffers = { task: [], sim: [], report: [] };
+var payloadViewState = {};
 
 function isTransientPollStatus(status) { return status === 429 || status >= 500; }
 function nextBackoffDelay(currentDelay) { return Math.min(currentDelay * 2, POLL_BACKOFF_MAX_MS); }
+function startPoll(kind) { pollState[kind] = (pollState[kind] || 0) + 1; return pollState[kind]; }
+function invalidatePoll(kind) { pollState[kind] = 0; }
+function stopPoll(kind, token) { if (pollState[kind] === token) pollState[kind] = 0; }
+function trimLines(lines) { return lines.length > LOG_MAX_LINES ? lines.slice(lines.length - LOG_MAX_LINES) : lines; }
+function setPollLog(kind, el, text) {
+  var lines = trimLines(String(text || '').split('\n'));
+  pollLogBuffers[kind] = lines;
+  el.textContent = lines.join('\n');
+}
+function primePollLog(kind, el) { setPollLog(kind, el, el.textContent || ''); }
+function appendPollLog(kind, el, line) {
+  var lines = pollLogBuffers[kind] || [];
+  lines.push(String(line));
+  lines = trimLines(lines);
+  pollLogBuffers[kind] = lines;
+  el.textContent = lines.join('\n');
+}
+function summarizePayload(prefix, data) {
+  var lines = [prefix];
+  if (!data || typeof data !== 'object') return lines.join('\n');
+  var keys = Object.keys(data);
+  var preferred = ['success', 'status', 'project_id', 'graph_id', 'simulation_id', 'report_id', 'task_id', 'message', 'error'];
+  preferred.forEach(function(k) {
+    if (Object.prototype.hasOwnProperty.call(data, k)) lines.push(k + ': ' + String(data[k]));
+  });
+  if (keys.length) lines.push('fields: ' + keys.join(', '));
+  return lines.join('\n');
+}
+function safeJsonStringify(data) {
+  try { return JSON.stringify(data, null, 2); } catch (_) { return String(data); }
+}
+function setPayloadView(viewId, toggleId, summary, data) {
+  var view = document.getElementById(viewId);
+  var toggle = document.getElementById(toggleId);
+  payloadViewState[viewId] = { summary: String(summary || ''), raw: safeJsonStringify(data), showRaw: false };
+  view.textContent = payloadViewState[viewId].summary;
+  if (toggle) {
+    toggle.style.display = 'inline-flex';
+    toggle.textContent = 'Show Raw JSON';
+    toggle.onclick = function() { togglePayloadView(viewId, toggleId); };
+  }
+}
+function togglePayloadView(viewId, toggleId) {
+  var state = payloadViewState[viewId];
+  if (!state) return;
+  state.showRaw = !state.showRaw;
+  var view = document.getElementById(viewId);
+  var toggle = document.getElementById(toggleId);
+  view.textContent = state.showRaw ? state.raw : state.summary;
+  if (toggle) toggle.textContent = state.showRaw ? 'Show Summary' : 'Show Raw JSON';
+}
+function hidePayloadToggle(toggleId) {
+  var toggle = document.getElementById(toggleId);
+  if (toggle) toggle.style.display = 'none';
+}
 
 function showStep(n) {
   document.querySelectorAll('.wstep').forEach(function(s, i) { s.classList.toggle('active', i === n); });
@@ -355,6 +417,11 @@ function pickFiles(files) {
   wFiles = Array.from(files);
   var el = document.getElementById('fileListW');
   el.innerHTML = wFiles.length ? '<strong>Files:</strong> ' + wFiles.map(function(f) { return esc(f.name); }).join(', ') : '';
+}
+function clearSelectedFiles() {
+  wFiles = [];
+  fi.value = '';
+  document.getElementById('fileListW').innerHTML = '';
 }
 
 async function wizardGenerate() {
@@ -396,7 +463,8 @@ async function wizardGenerate() {
       resultEl.innerHTML = '<div class="result-box"><span class="r">' + esc(data.error || 'Generation failed') + '</span></div>';
     } else {
       wState.projectId = data.project_id || null;
-      document.getElementById('ontologyView').textContent = JSON.stringify(data, null, 2);
+      setPayloadView('ontologyView', 'ontologyRawBtn', summarizePayload('Ontology generated.', data), data);
+      clearSelectedFiles();
       document.querySelectorAll('.wstep')[0].classList.add('done');
       showStep(1);
     }
@@ -412,13 +480,15 @@ async function wizardBuildGraph() {
   var btn = document.getElementById('wBuildBtn');
   btn.disabled = true; btn.textContent = 'Building...';
   var gv = document.getElementById('graphView');
+  hidePayloadToggle('graphRawBtn');
   gv.textContent = 'Starting graph build...';
   try {
     var res = await timedFetch(API + '/api/graph/build', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: wState.projectId }) }, 30000);
     if (!res.ok) { gv.textContent = 'API error: HTTP ' + res.status; btn.disabled = false; btn.textContent = 'Build Knowledge Graph \u2192'; return; }
     var data = await res.json();
     wState.graphId = data.graph_id || null;
-    gv.textContent = 'Graph build initiated.\n\n' + JSON.stringify(data, null, 2);
+    setPayloadView('graphView', 'graphRawBtn', summarizePayload('Graph build initiated.', data), data);
+    invalidatePoll('task');
     if (data.task_id) { pollTask(data.task_id, gv); }
     document.querySelectorAll('.wstep')[1].classList.add('done');
     showStep(2);
@@ -427,7 +497,8 @@ async function wizardBuildGraph() {
 }
 
 async function pollTask(taskId, el) {
-  var myToken = ++pollState.task;
+  primePollLog('task', el);
+  var myToken = startPoll('task');
   var delayMs = POLL_INTERVAL_MS;
   for (var i = 0; i < 60; i++) {
     if (myToken !== pollState.task) return;
@@ -441,24 +512,28 @@ async function pollTask(taskId, el) {
       }
       delayMs = POLL_INTERVAL_MS;
       var data = await res.json();
-      el.textContent += '\n[' + new Date().toLocaleTimeString() + '] Status: ' + (data.status || 'unknown');
+      appendPollLog('task', el, '[' + new Date().toLocaleTimeString() + '] Status: ' + (data.status || 'unknown'));
       if (data.status === 'completed' || data.status === 'done') {
         wState.graphId = data.graph_id || wState.graphId;
-        el.textContent += '\nGraph build complete!';
+        appendPollLog('task', el, 'Graph build complete!');
         document.querySelectorAll('.wstep')[2].classList.add('done');
+        stopPoll('task', myToken);
         return;
       }
       if (data.status === 'failed' || data.status === 'error') {
-        el.textContent += '\nBuild failed: ' + (data.error || '');
+        appendPollLog('task', el, 'Build failed: ' + (data.error || ''));
+        stopPoll('task', myToken);
         return;
       }
-    } catch (err) { el.textContent += '\nPoll error: ' + err.message; delayMs = nextBackoffDelay(delayMs); }
+    } catch (err) { appendPollLog('task', el, 'Poll error: ' + err.message); delayMs = nextBackoffDelay(delayMs); }
   }
+  stopPoll('task', myToken);
 }
 
 async function wizardCreateSim() {
   if (!wState.projectId) { document.getElementById('simView').textContent = 'Build graph first.'; return; }
   var sv = document.getElementById('simView');
+  hidePayloadToggle('simRawBtn');
   sv.textContent = 'Creating simulation...';
   try {
     var body = { project_id: wState.projectId };
@@ -471,7 +546,7 @@ async function wizardCreateSim() {
     if (!res.ok) { sv.textContent = 'API error: HTTP ' + res.status; return; }
     var data = await res.json();
     wState.simId = data.simulation_id || null;
-    sv.textContent = 'Simulation created.\n' + JSON.stringify(data, null, 2);
+    setPayloadView('simView', 'simRawBtn', summarizePayload('Simulation created.', data), data);
     document.querySelectorAll('.wstep')[2].classList.add('done');
     showStep(3);
   } catch (err) { sv.textContent = 'Error: ' + (err.name === 'AbortError' ? 'timeout' : err.message); }
@@ -483,12 +558,14 @@ async function wizardStartSim() {
   var sv = document.getElementById('simView');
   sv.dataset.cancelNotice = '0';
   var rounds = parseInt(document.getElementById('wRounds').value) || 10;
+  hidePayloadToggle('simRawBtn');
   sv.textContent = 'Starting simulation (' + rounds + ' rounds)...';
   try {
     var res = await timedFetch(API + '/api/simulation/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId, max_rounds: rounds }) }, 30000);
     if (!res.ok) { sv.textContent += '\nAPI error: HTTP ' + res.status; return; }
     var data = await res.json();
-    sv.textContent += '\n' + JSON.stringify(data, null, 2);
+    setPayloadView('simView', 'simRawBtn', summarizePayload('Simulation start accepted.', data), data);
+    invalidatePoll('sim');
     document.getElementById('wStartBtn').style.display = 'none';
     document.getElementById('wStopBtn').style.display = 'inline-flex';
     pollSimStatus(wState.simId);
@@ -501,7 +578,8 @@ async function wizardStartSim() {
 
 async function pollSimStatus(simId) {
   var sv = document.getElementById('simView');
-  var myToken = ++pollState.sim;
+  primePollLog('sim', sv);
+  var myToken = startPoll('sim');
   var delayMs = POLL_INTERVAL_MS;
   for (var i = 0; i < 120; i++) {
     if (pollState.sim !== myToken) return;
@@ -510,31 +588,31 @@ async function pollSimStatus(simId) {
     try {
       var res = await timedFetch(API + '/api/simulation/' + simId + '/run-status');
       if (!res.ok) {
-        sv.textContent += '\n[' + new Date().toLocaleTimeString() + '] Poll: HTTP ' + res.status;
+        appendPollLog('sim', sv, '[' + new Date().toLocaleTimeString() + '] Poll: HTTP ' + res.status);
         delayMs = isTransientPollStatus(res.status) ? nextBackoffDelay(delayMs) : POLL_INTERVAL_MS;
         continue;
       }
       delayMs = POLL_INTERVAL_MS;
       var data = await res.json();
-      sv.textContent += '\n[' + new Date().toLocaleTimeString() + '] ' + esc(data.status || 'polling...');
+      appendPollLog('sim', sv, '[' + new Date().toLocaleTimeString() + '] ' + (data.status || 'polling...'));
       if (data.status === 'completed' || data.status === 'done') {
-        sv.textContent += '\nSimulation complete!';
+        appendPollLog('sim', sv, 'Simulation complete!');
         document.getElementById('wStopBtn').style.display = 'none';
         document.getElementById('wReportBtn').style.display = 'inline-flex';
         document.querySelectorAll('.wstep')[3].classList.add('done');
-        pollState.sim = 0;
+        stopPoll('sim', myToken);
         return;
       }
       if (data.status === 'failed' || data.status === 'stopped') {
-        sv.textContent += '\nSimulation ended: ' + data.status;
+        appendPollLog('sim', sv, 'Simulation ended: ' + data.status);
         document.getElementById('wStopBtn').style.display = 'none';
         document.getElementById('wStartBtn').style.display = 'inline-flex';
-        pollState.sim = 0;
+        stopPoll('sim', myToken);
         return;
       }
-    } catch (err) { sv.textContent += '\n' + err.message; delayMs = nextBackoffDelay(delayMs); }
+    } catch (err) { appendPollLog('sim', sv, err.message); delayMs = nextBackoffDelay(delayMs); }
   }
-  if (pollState.sim === myToken) pollState.sim = 0;
+  stopPoll('sim', myToken);
 }
 
 function cancelCurrentRun() {
@@ -559,8 +637,8 @@ async function wizardStopSim() {
   pollState.sim = 0;
   try {
     await timedFetch(API + '/api/simulation/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId }) });
-    document.getElementById('simView').textContent += '\nStop requested.';
-  } catch (err) { document.getElementById('simView').textContent += '\n' + err.message; }
+    appendPollLog('sim', document.getElementById('simView'), 'Stop requested.');
+  } catch (err) { appendPollLog('sim', document.getElementById('simView'), err.message); }
   document.getElementById('wStopBtn').style.display = 'none';
   document.getElementById('wStartBtn').style.display = 'inline-flex';
 }
@@ -570,20 +648,23 @@ async function wizardGenReport() {
   showStep(4);
   var rv = document.getElementById('reportView');
   rv.dataset.cancelNotice = '0';
+  hidePayloadToggle('reportRawBtn');
   rv.textContent = 'Generating report...';
   try {
     var res = await timedFetch(API + '/api/report/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId }) }, 30000);
     if (!res.ok) { rv.textContent = 'API error: HTTP ' + res.status; return; }
     var data = await res.json();
     wState.reportId = data.report_id || null;
-    rv.textContent = 'Report generation started.\n' + JSON.stringify(data, null, 2);
+    setPayloadView('reportView', 'reportRawBtn', summarizePayload('Report generation started.', data), data);
+    invalidatePoll('report');
     if (data.report_id || data.task_id) pollReportStatus(data.report_id || data.task_id);
   } catch (err) { rv.textContent = 'Error: ' + err.message; }
 }
 
 async function pollReportStatus(id) {
   var rv = document.getElementById('reportView');
-  var myToken = ++pollState.report;
+  primePollLog('report', rv);
+  var myToken = startPoll('report');
   var delayMs = POLL_INTERVAL_MS;
   for (var i = 0; i < 60; i++) {
     if (myToken !== pollState.report) return;
@@ -592,22 +673,25 @@ async function pollReportStatus(id) {
     try {
       var res = await timedFetch(API + '/api/report/' + encodeURIComponent(id));
       if (!res.ok) {
-        rv.textContent += '\n[' + new Date().toLocaleTimeString() + '] HTTP ' + res.status;
+        appendPollLog('report', rv, '[' + new Date().toLocaleTimeString() + '] HTTP ' + res.status);
         delayMs = isTransientPollStatus(res.status) ? nextBackoffDelay(delayMs) : POLL_INTERVAL_MS;
         continue;
       }
       delayMs = POLL_INTERVAL_MS;
       var data = await res.json();
       if (data.content || data.sections) {
+        hidePayloadToggle('reportRawBtn');
         rv.textContent = 'Report ready!\n\n' + (data.content || JSON.stringify(data.sections, null, 2));
         document.getElementById('wDownloadBtn').style.display = 'inline-flex';
         document.getElementById('wDownloadBtn').onclick = function() { window.open(API + '/api/report/' + encodeURIComponent(id) + '/download', '_blank'); };
         document.querySelectorAll('.wstep')[4].classList.add('done');
+        stopPoll('report', myToken);
         return;
       }
-      rv.textContent += '\n[' + new Date().toLocaleTimeString() + '] generating...';
-    } catch (err) { rv.textContent += '\n' + err.message; delayMs = nextBackoffDelay(delayMs); }
+      appendPollLog('report', rv, '[' + new Date().toLocaleTimeString() + '] generating...');
+    } catch (err) { appendPollLog('report', rv, err.message); delayMs = nextBackoffDelay(delayMs); }
   }
+  stopPoll('report', myToken);
 }
 
 // EV Calculator
