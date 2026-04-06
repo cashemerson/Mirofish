@@ -143,6 +143,10 @@ docker compose -f docker-compose.yml -f docker-compose.tls.yml pull
 docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d --force-recreate
 ```
 
+If you see `open .../docker-compose.yml: no such file or directory`, the path is wrong for that machine.
+Do **not** use GitHub runner paths like `/home/runner/work/...` on your VPS.
+Run from the server's actual clone directory (example above) and use repo-local compose paths.
+
 ### Step 6 — Wait and check container health
 
 ```
