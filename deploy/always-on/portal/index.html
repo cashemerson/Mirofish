@@ -1125,6 +1125,14 @@ async function checkEndpoint(url) {
     var res = await timedFetch(url, { cache: 'no-cache' }, 10000);
     return { ok: res.ok, status: res.status, ms: Date.now() - start };
   } catch (err) {
+    // If direct fetch is blocked by CORS, attempt a no-cors probe.
+    // A successful opaque response still indicates the endpoint is reachable.
+    if (err && err.name !== 'AbortError') {
+      try {
+        await timedFetch(url, { cache: 'no-cache', mode: 'no-cors' }, 10000);
+        return { ok: true, status: 'opaque', ms: Date.now() - start };
+      } catch (_) {}
+    }
     return { ok: false, error: err.name === 'AbortError' ? 'timeout' : err.message, ms: Date.now() - start };
   }
 }
