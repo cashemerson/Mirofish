@@ -26,6 +26,51 @@ Recommended defaults:
 - `LLM_BASE_URL=https://api.openai.com/v1`
 - `LLM_MODEL_NAME=gpt-4o-mini`
 
+## Ollama vs vLLM (for cesimulation.it.com)
+
+Short answer:
+- **Use vLLM for production** (better throughput, batching, and GPU utilization under concurrent traffic).
+- **Use Ollama for simplicity/local testing** (easier setup, lower operational complexity).
+
+For `cesimulation.it.com`, prefer **vLLM** as the default self-hosted inference backend.
+
+### Configure provider in `.env` automatically
+
+Use:
+
+```bash
+cd deploy/always-on
+chmod +x scripts/configure-llm-provider.sh
+```
+
+Configure **vLLM** (recommended):
+
+```bash
+./scripts/configure-llm-provider.sh \
+  --provider vllm \
+  --base-url http://vllm:8000/v1 \
+  --model Qwen/Qwen2.5-7B-Instruct \
+  --api-key none
+```
+
+Configure **Ollama** (alternative):
+
+```bash
+./scripts/configure-llm-provider.sh \
+  --provider ollama \
+  --base-url http://host.docker.internal:11434/v1 \
+  --model llama3.1:8b \
+  --api-key none
+```
+
+Then continue with standard preflight + startup:
+
+```bash
+./scripts/validate-deploy.sh --mode tls
+./scripts/render-caddyfile.sh
+docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
+```
+
 ---
 
 ## Option 1: local ports only (no TLS)
