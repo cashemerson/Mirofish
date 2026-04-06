@@ -486,7 +486,7 @@ async function wizardStartSim() {
 
 async function pollSimStatus(simId) {
   var sv = document.getElementById('simView');
-  var myToken = Date.now();
+  var myToken = ++pollState.sim;
   pollState.sim = myToken;
   for (var i = 0; i < 120; i++) {
     if (pollState.sim !== myToken) return;
