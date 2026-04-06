@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_DIR="/workspace/MiroFish"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
 ENV_FILE="${REPO_DIR}/.env"
 
 usage() {
@@ -35,11 +35,13 @@ fail() {
 set_env_var() {
   local key="$1"
   local value="$2"
-  if grep -q "^${key}=" "${ENV_FILE}"; then
-    sed -i "s|^${key}=.*|${key}=${value}|" "${ENV_FILE}"
-  else
-    printf "%s=%s\n" "${key}" "${value}" >> "${ENV_FILE}"
+  local tmp
+  tmp="$(mktemp)"
+  if [ -f "${ENV_FILE}" ]; then
+    grep -v "^${key}=" "${ENV_FILE}" > "${tmp}" || true
   fi
+  printf "%s=%s\n" "${key}" "${value}" >> "${tmp}"
+  mv "${tmp}" "${ENV_FILE}"
 }
 
 PROVIDER=""
