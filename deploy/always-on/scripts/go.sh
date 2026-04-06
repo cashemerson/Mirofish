@@ -113,15 +113,33 @@ echo "Container status:"
 docker compose -f docker-compose.yml -f docker-compose.tls.yml ps
 echo ""
 
+check_url_code() {
+  local url="$1"
+  local label="${2:-$1}"
+  local code_file
+  code_file="$(mktemp)"
+  {
+    code="$(curl -sk -o /dev/null -w '%{http_code}' "${url}" 2>/dev/null || echo 'ERR')"
+    printf '%s\n' "${code}" > "${code_file}"
+  } &
+  echo "$!|${label}|${code_file}"
+}
+
 echo "Endpoint checks:"
-for URL in "https://cesimulation.it.com/" "https://app.cesimulation.it.com/" "https://portal.cesimulation.it.com/"; do
-  CODE="$(curl -sk -o /dev/null -w '%{http_code}' "${URL}" 2>/dev/null || echo 'ERR')"
-  echo "  ${URL} -> HTTP ${CODE}"
+CHECKS=(
+  "$(check_url_code 'https://cesimulation.it.com/' 'https://cesimulation.it.com/')"
+  "$(check_url_code 'https://app.cesimulation.it.com/' 'https://app.cesimulation.it.com/')"
+  "$(check_url_code 'https://portal.cesimulation.it.com/' 'https://portal.cesimulation.it.com/')"
+  "$(check_url_code 'https://cesimulation.it.com/api/simulation/history?limit=1' 'API /simulation/history')"
+  "$(check_url_code 'https://cesimulation.it.com/health' 'Backend /health')"
+)
+for CHECK in "${CHECKS[@]}"; do
+  IFS='|' read -r PID LABEL CODE_FILE <<<"${CHECK}"
+  wait "${PID}" || true
+  CODE="$(cat "${CODE_FILE}" 2>/dev/null || echo 'ERR')"
+  rm -f "${CODE_FILE}"
+  echo "  ${LABEL} -> HTTP ${CODE}"
 done
-API_CODE="$(curl -sk -o /dev/null -w '%{http_code}' 'https://cesimulation.it.com/api/simulation/history?limit=1' 2>/dev/null || echo 'ERR')"
-echo "  API /simulation/history -> HTTP ${API_CODE}"
-HEALTH_CODE="$(curl -sk -o /dev/null -w '%{http_code}' 'https://cesimulation.it.com/health' 2>/dev/null || echo 'ERR')"
-echo "  Backend /health -> HTTP ${HEALTH_CODE}"
 echo ""
 
 echo "========================================"
