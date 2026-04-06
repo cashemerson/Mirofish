@@ -132,6 +132,7 @@ docker compose -f docker-compose.yml -f docker-compose.tls.yml ps
 If Docker reports `open .../docker-compose.yml: no such file or directory`, you're using the wrong filesystem path for that host.
 Use the server-local repo directory (for example `cd /root/mirofish-deploy/deploy/always-on`) and run compose with repo-local files (`-f docker-compose.yml -f docker-compose.tls.yml`).
 Do not copy GitHub runner paths like `/home/runner/work/...` into VPS commands.
+The helper `scripts/go.sh` now resolves its deploy directory relative to its own location, so it can be run from any clone path.
 
 `docker-compose.yml` injects `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS` from domain values to prevent Vite host-allowlist 403 errors on custom domains.
 
