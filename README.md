@@ -11,7 +11,7 @@ Use one of these two repo-native paths.
 This starts backend + portal locally with no TLS:
 
 ```bash
-cd /home/runner/work/Mirofish/Mirofish/deploy/always-on
+cd deploy/always-on
 cp .env.example .env
 # edit .env and set at least LLM_API_KEY and ZEP_API_KEY
 bash scripts/validate-deploy.sh --mode base
@@ -31,7 +31,7 @@ Point the LLM settings at your local Ollama OpenAI-compatible endpoint:
 ollama serve
 ollama pull llama3.1:8b
 
-cd /home/runner/work/Mirofish/Mirofish
+cd .
 cp -n .env.example .env || true
 chmod +x .cursor/configure-local-llm-provider.sh
 .cursor/configure-local-llm-provider.sh \
@@ -39,7 +39,7 @@ chmod +x .cursor/configure-local-llm-provider.sh
   --base-url http://127.0.0.1:11434/v1 \
   --model llama3.1:8b \
   --api-key none \
-  --env-file /home/runner/work/Mirofish/Mirofish/.env
+  --env-file .env
 ```
 
 This updates:
