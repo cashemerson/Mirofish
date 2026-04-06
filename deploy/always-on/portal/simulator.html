@@ -412,7 +412,7 @@ var fi = document.getElementById('fInput');
 dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.style.borderColor = 'var(--accent)'; });
 dz.addEventListener('dragleave', function() { dz.style.borderColor = 'var(--border-a)'; });
 dz.addEventListener('drop', function(e) { e.preventDefault(); dz.style.borderColor = 'var(--border-a)'; pickFiles(e.dataTransfer.files); });
-fi.addEventListener('change', function(e) { pickFiles(e.target.files); });
+if (fi) fi.addEventListener('change', function(e) { pickFiles(e.target.files); });
 function pickFiles(files) {
   wFiles = Array.from(files);
   var el = document.getElementById('fileListW');
@@ -420,7 +420,8 @@ function pickFiles(files) {
 }
 function clearSelectedFiles() {
   wFiles = [];
-  fi.value = '';
+  var fileInput = document.getElementById('fInput');
+  if (fileInput) fileInput.value = '';
   document.getElementById('fileListW').innerHTML = '';
 }
 
