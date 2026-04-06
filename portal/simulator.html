@@ -286,8 +286,9 @@ var API = (function() {
   } catch (_) {}
   var h = window.location.hostname;
   var p = window.location.protocol;
-  if (h === 'localhost' || h === '127.0.0.1') return p + '//localhost:5001';
+  if (h === 'localhost' || h === '127.0.0.1') return p + '//' + h + ':5001';
   if (h.startsWith('portal.')) return p + '//' + h.slice('portal.'.length);
+  if (window.location.port === '8080') return p + '//' + h + ':5001';
   return window.location.origin;
 })();
 
