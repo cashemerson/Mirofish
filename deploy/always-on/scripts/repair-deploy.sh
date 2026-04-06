@@ -137,21 +137,26 @@ services:
     image: ghcr.io/666ghj/mirofish:latest
     container_name: mirofish
     restart: unless-stopped
+    command: >
+      sh -lc "cd /app &&
+      backend/.venv/bin/python backend/run.py &
+      cd frontend && npm run dev"
     env_file:
       - .env
     environment:
       - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=\${MIROFISH_DOMAIN:-localhost},\${PORTAL_DOMAIN:-localhost},localhost,127.0.0.1
+      - BROWSER=none
     ports:
       - "3000:3000"
       - "5001:5001"
     volumes:
       - ./uploads:/app/backend/uploads
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5001/api/simulation/history?limit=1 || exit 1"]
-      interval: 20s
-      timeout: 8s
-      retries: 10
-      start_period: 45s
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5001/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
 
   caddy:
     image: caddy:2.8-alpine
@@ -207,6 +212,12 @@ EOF
 ${APP_DOMAIN}, ${ROOT_DOMAIN} {
   encode zstd gzip
   tls ${ACME_EMAIL}
+  @health path /health
+  handle @health {
+    reverse_proxy mirofish:5001 {
+      header_up Host localhost
+    }
+  }
   @api path /api/*
   handle @api {
     request_body {
