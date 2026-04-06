@@ -328,6 +328,7 @@ function explainOntologyApiError(status, payload, fallbackText) {
 var wState = { projectId: null, graphId: null, simId: null, reportId: null };
 var wFiles = [];
 var pollAbort = null;
+var pollState = { task: 0, sim: 0, report: 0 };
 
 function showStep(n) {
   document.querySelectorAll('.wstep').forEach(function(s, i) { s.classList.toggle('active', i === n); });
@@ -417,8 +418,11 @@ async function wizardBuildGraph() {
 }
 
 async function pollTask(taskId, el) {
+  var myToken = ++pollState.task;
   for (var i = 0; i < 60; i++) {
+    if (myToken !== pollState.task) return;
     await new Promise(function(r) { setTimeout(r, 5000); });
+    if (myToken !== pollState.task) return;
     try {
       var res = await timedFetch(API + '/api/graph/task/' + taskId);
       if (!res.ok) continue;
@@ -461,6 +465,7 @@ async function wizardCreateSim() {
 
 async function wizardStartSim() {
   if (!wState.simId) { document.getElementById('simView').textContent = 'Create simulation first.'; return; }
+  if (pollState.sim !== 0) return;
   var sv = document.getElementById('simView');
   var rounds = parseInt(document.getElementById('wRounds').value) || 10;
   sv.textContent = 'Starting simulation (' + rounds + ' rounds)...';
@@ -471,7 +476,7 @@ async function wizardStartSim() {
     sv.textContent += '\n' + JSON.stringify(data, null, 2);
     document.getElementById('wStartBtn').style.display = 'none';
     document.getElementById('wStopBtn').style.display = 'inline-flex';
-    pollSimStatus();
+    pollSimStatus(wState.simId);
   } catch (err) {
     sv.textContent += '\nError: ' + (err.name === 'AbortError' ? 'timeout' : err.message);
     document.getElementById('wStartBtn').style.display = 'inline-flex';
@@ -479,12 +484,16 @@ async function wizardStartSim() {
   }
 }
 
-async function pollSimStatus() {
+async function pollSimStatus(simId) {
   var sv = document.getElementById('simView');
+  var myToken = Date.now();
+  pollState.sim = myToken;
   for (var i = 0; i < 120; i++) {
+    if (pollState.sim !== myToken) return;
     await new Promise(function(r) { setTimeout(r, 5000); });
+    if (pollState.sim !== myToken) return;
     try {
-      var res = await timedFetch(API + '/api/simulation/' + wState.simId + '/run-status');
+      var res = await timedFetch(API + '/api/simulation/' + simId + '/run-status');
       if (!res.ok) { sv.textContent += '\n[' + new Date().toLocaleTimeString() + '] Poll: HTTP ' + res.status; continue; }
       var data = await res.json();
       sv.textContent += '\n[' + new Date().toLocaleTimeString() + '] ' + esc(data.status || 'polling...');
@@ -493,19 +502,23 @@ async function pollSimStatus() {
         document.getElementById('wStopBtn').style.display = 'none';
         document.getElementById('wReportBtn').style.display = 'inline-flex';
         document.querySelectorAll('.wstep')[3].classList.add('done');
+        pollState.sim = 0;
         return;
       }
       if (data.status === 'failed' || data.status === 'stopped') {
         sv.textContent += '\nSimulation ended: ' + data.status;
         document.getElementById('wStopBtn').style.display = 'none';
         document.getElementById('wStartBtn').style.display = 'inline-flex';
+        pollState.sim = 0;
         return;
       }
     } catch (err) { sv.textContent += '\n' + err.message; }
   }
+  if (pollState.sim === myToken) pollState.sim = 0;
 }
 
 async function wizardStopSim() {
+  pollState.sim = 0;
   try {
     await timedFetch(API + '/api/simulation/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId }) });
     document.getElementById('simView').textContent += '\nStop requested.';
@@ -531,8 +544,11 @@ async function wizardGenReport() {
 
 async function pollReportStatus(id) {
   var rv = document.getElementById('reportView');
+  var myToken = ++pollState.report;
   for (var i = 0; i < 60; i++) {
+    if (myToken !== pollState.report) return;
     await new Promise(function(r) { setTimeout(r, 5000); });
+    if (myToken !== pollState.report) return;
     try {
       var res = await timedFetch(API + '/api/report/' + encodeURIComponent(id));
       if (!res.ok) { rv.textContent += '\n[' + new Date().toLocaleTimeString() + '] HTTP ' + res.status; continue; }
