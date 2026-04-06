@@ -85,11 +85,14 @@ fi
 set_env_var() {
   local key="$1"
   local value="$2"
-  if grep -q "^${key}=" "${DEPLOY_DIR}/.env"; then
-    sed -i "s|^${key}=.*|${key}=${value}|" "${DEPLOY_DIR}/.env"
-  else
-    printf "%s=%s\n" "${key}" "${value}" >> "${DEPLOY_DIR}/.env"
+  local env_file="${DEPLOY_DIR}/.env"
+  local tmp
+  tmp="$(mktemp)"
+  if [ -f "${env_file}" ]; then
+    grep -v "^${key}=" "${env_file}" > "${tmp}" || true
   fi
+  printf "%s=%s\n" "${key}" "${value}" >> "${tmp}"
+  mv "${tmp}" "${env_file}"
 }
 
 set_env_var "MIROFISH_DOMAIN" "${APP_DOMAIN},${ROOT_DOMAIN}"

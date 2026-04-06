@@ -31,12 +31,13 @@ require_file() {
 ensure_env_var() {
   local key="$1"
   local value="$2"
-  if grep -q "^${key}=" "${ENV_FILE}"; then
-    sed -i "s|^${key}=.*|${key}=${value}|" "${ENV_FILE}"
-  else
-    printf "%s=%s
-" "${key}" "${value}" >> "${ENV_FILE}"
+  local tmp
+  tmp="$(mktemp)"
+  if [ -f "${ENV_FILE}" ]; then
+    grep -v "^${key}=" "${ENV_FILE}" > "${tmp}" || true
   fi
+  printf "%s=%s\n" "${key}" "${value}" >> "${tmp}"
+  mv "${tmp}" "${ENV_FILE}"
 }
 
 usage() {
