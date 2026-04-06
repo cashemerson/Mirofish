@@ -298,6 +298,33 @@ function timedFetch(url, opts, ms) {
   return fetch(url, Object.assign({}, opts, { signal: ctrl.signal })).finally(function() { clearTimeout(timer); });
 }
 
+function explainOntologyApiError(status, payload, fallbackText) {
+  var raw = '';
+  if (payload) {
+    if (typeof payload === 'string') raw = payload;
+    else if (typeof payload.error === 'string') raw = payload.error;
+    else if (payload.error && typeof payload.error.message === 'string') raw = payload.error.message;
+    else {
+      try { raw = JSON.stringify(payload); } catch (_) {}
+    }
+  }
+  var combined = (raw || fallbackText || '').toLowerCase();
+  var insufficientQuota = status === 429 && (combined.includes('insufficient_quota') || combined.includes('exceeded your current quota'));
+  if (insufficientQuota) {
+    return {
+      message: 'OpenAI API quota exceeded: add API credits or increase API limits in OpenAI Platform Billing, then retry.',
+      detail: 'A ChatGPT subscription does not increase OpenAI API quota.'
+    };
+  }
+  if (status === 429) {
+    return {
+      message: 'Rate limited by provider. Please wait and retry.',
+      detail: 'If this persists, lower concurrent requests.'
+    };
+  }
+  return { message: raw || fallbackText || ('HTTP ' + status), detail: '' };
+}
+
 var wState = { projectId: null, graphId: null, simId: null, reportId: null };
 var wFiles = [];
 var pollAbort = null;
@@ -339,9 +366,17 @@ async function wizardGenerate() {
     var res = await timedFetch(API + '/api/graph/ontology/generate', { method: 'POST', body: fd }, 300000);
     if (!res.ok) {
       var errMsg = 'HTTP ' + res.status;
-      try { var ed = await res.json(); errMsg = ed.error || errMsg; } catch(_) {}
-      document.getElementById('ontologyView').textContent = 'Error: ' + errMsg;
-      resultEl.innerHTML = '<div class="result-box"><span class="r">API error: ' + esc(errMsg) + '</span></div>';
+      var ed = null;
+      try {
+        ed = await res.json();
+        if (ed) {
+          if (typeof ed.error === 'string') errMsg = ed.error;
+          else if (ed.error && typeof ed.error.message === 'string') errMsg = ed.error.message;
+        }
+      } catch(_) {}
+      var friendly = explainOntologyApiError(res.status, ed, errMsg);
+      document.getElementById('ontologyView').textContent = 'Error: ' + friendly.message;
+      resultEl.innerHTML = '<div class="result-box"><span class="r">API error: ' + esc(friendly.message) + '</span>' + (friendly.detail ? '<br><span class="d">' + esc(friendly.detail) + '</span>' : '') + '</div>';
       btn.disabled = false; btn.textContent = 'Generate Ontology \u2192';
       return;
     }

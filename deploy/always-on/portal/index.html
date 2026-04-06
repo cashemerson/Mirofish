@@ -915,6 +915,39 @@ function timedFetch(url, opts, ms) {
     .finally(() => clearTimeout(timer));
 }
 
+function explainOntologyApiError(status, payload, fallbackText) {
+  var raw = '';
+  if (payload) {
+    if (typeof payload === 'string') raw = payload;
+    else if (typeof payload.error === 'string') raw = payload.error;
+    else if (payload.error && typeof payload.error.message === 'string') raw = payload.error.message;
+    else {
+      try { raw = JSON.stringify(payload); } catch (_) {}
+    }
+  }
+  var combined = (raw || fallbackText || '').toLowerCase();
+  var insufficientQuota = status === 429 && (combined.includes('insufficient_quota') || combined.includes('exceeded your current quota'));
+  if (insufficientQuota) {
+    return {
+      title: 'OpenAI API quota exceeded',
+      message: 'Your OpenAI API key has no remaining API quota for this request.',
+      sub: 'Add credits or raise API usage limits in OpenAI Platform Billing, then retry. A ChatGPT subscription does not increase API quota.'
+    };
+  }
+  if (status === 429) {
+    return {
+      title: 'Rate limited by provider',
+      message: 'The model provider is rate-limiting requests right now.',
+      sub: 'Wait briefly and retry, or lower request volume/concurrency.'
+    };
+  }
+  return {
+    title: 'API Error',
+    message: raw || fallbackText || ('HTTP ' + status),
+    sub: ''
+  };
+}
+
 // Tabs with ARIA
 document.querySelectorAll('.tabs').forEach(function(tg) {
   tg.querySelectorAll('.tab').forEach(function(tab) {
@@ -993,9 +1026,17 @@ async function generateOntology() {
   try {
     var res = await timedFetch(API_BASE + '/api/graph/ontology/generate', { method: 'POST', body: formData }, 300000);
     if (!res.ok) {
-      var errText = '';
-      try { var ed = await res.json(); errText = ed.error || res.statusText; } catch(_) { errText = res.status + ' ' + res.statusText; }
-      result.innerHTML = '<div class="stat-card" style="border-color:var(--red)"><div class="stat-label">API Error</div><div class="stat-value" style="font-size:16px;color:var(--red)">' + esc(errText) + '</div></div>';
+      var errPayload = null;
+      var errText = res.status + ' ' + res.statusText;
+      try {
+        errPayload = await res.json();
+        if (errPayload) {
+          if (typeof errPayload.error === 'string') errText = errPayload.error;
+          else if (errPayload.error && typeof errPayload.error.message === 'string') errText = errPayload.error.message;
+        }
+      } catch(_) {}
+      var friendly = explainOntologyApiError(res.status, errPayload, errText);
+      result.innerHTML = '<div class="stat-card" style="border-color:var(--red)"><div class="stat-label">' + esc(friendly.title) + '</div><div class="stat-value" style="font-size:16px;color:var(--red)">' + esc(friendly.message) + '</div>' + (friendly.sub ? '<div class="stat-sub">' + esc(friendly.sub) + '</div>' : '') + '</div>';
       return;
     }
     var data = await res.json();
