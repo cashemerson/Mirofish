@@ -20,6 +20,10 @@ services:
     image: ghcr.io/666ghj/mirofish:latest
     container_name: mirofish
     restart: unless-stopped
+    command: >
+      sh -lc "cd /app &&
+      backend/.venv/bin/python backend/run.py &
+      cd frontend && npm run dev"
     env_file:
       - .env
     environment:
