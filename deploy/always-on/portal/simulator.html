@@ -335,6 +335,7 @@ function explainOntologyApiError(status, payload, fallbackText) {
 
 var wState = { projectId: null, graphId: null, simId: null, reportId: null };
 var wFiles = [];
+var wFileNames = [];
 var pollAbort = null;
 var pollState = { task: 0, sim: 0, report: 0 };
 var POLL_INTERVAL_MS = 5000;
@@ -415,14 +416,26 @@ dz.addEventListener('drop', function(e) { e.preventDefault(); dz.style.borderCol
 if (fi) fi.addEventListener('change', function(e) { pickFiles(e.target.files); });
 function pickFiles(files) {
   wFiles = Array.from(files);
+  wFileNames = wFiles.map(function(f) { return f.name; });
+  renderFileList();
+}
+function renderFileList() {
   var el = document.getElementById('fileListW');
-  el.innerHTML = wFiles.length ? '<strong>Files:</strong> ' + wFiles.map(function(f) { return esc(f.name); }).join(', ') : '';
+  if (wFiles.length) {
+    el.innerHTML = '<strong>Files:</strong> ' + wFiles.map(function(f) { return esc(f.name); }).join(', ');
+    return;
+  }
+  if (wFileNames.length) {
+    el.innerHTML = '<strong>Uploaded:</strong> ' + wFileNames.map(esc).join(', ') + ' <span class="d">(select files again to re-upload)</span>';
+    return;
+  }
+  el.innerHTML = '';
 }
 function clearSelectedFiles() {
   wFiles = [];
   var fileInput = document.getElementById('fInput');
   if (fileInput) fileInput.value = '';
-  document.getElementById('fileListW').innerHTML = '';
+  renderFileList();
 }
 
 async function wizardGenerate() {
@@ -555,7 +568,12 @@ async function wizardCreateSim() {
 
 async function wizardStartSim() {
   if (!wState.simId) { document.getElementById('simView').textContent = 'Create simulation first.'; return; }
-  if (pollState.sim !== 0) { document.getElementById('simView').textContent += '\nSimulation already running.'; return; }
+  if (pollState.sim !== 0) {
+    var simBusy = document.getElementById('simView');
+    primePollLog('sim', simBusy);
+    appendPollLog('sim', simBusy, 'Simulation already running.');
+    return;
+  }
   var sv = document.getElementById('simView');
   sv.dataset.cancelNotice = '0';
   var rounds = parseInt(document.getElementById('wRounds').value) || 10;
@@ -622,12 +640,14 @@ function cancelCurrentRun() {
   invalidatePoll('report');
   var simView = document.getElementById('simView');
   if (simView && simView.dataset.cancelNotice !== '1') {
-    simView.textContent += '\nPolling cancelled by user.';
+    primePollLog('sim', simView);
+    appendPollLog('sim', simView, 'Polling cancelled by user.');
     simView.dataset.cancelNotice = '1';
   }
   var reportView = document.getElementById('reportView');
   if (reportView && reportView.dataset.cancelNotice !== '1') {
-    reportView.textContent += '\nPolling cancelled by user.';
+    primePollLog('report', reportView);
+    appendPollLog('report', reportView, 'Polling cancelled by user.');
     reportView.dataset.cancelNotice = '1';
   }
   document.getElementById('wStopBtn').style.display = 'none';
