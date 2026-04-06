@@ -2,20 +2,35 @@
 
 AI-powered ontology generation and simulation platform.
 
-## Local Ollama integration
+## Run locally (simulator-focused)
 
-Yes — you can run locally with Ollama using its OpenAI-compatible endpoint.
+Use one of these two repo-native paths.
 
-### 1) Start Ollama and pull a model
+### Method 1: Docker Compose local stack (recommended for quick start)
+
+This starts backend + portal locally with no TLS:
+
+```bash
+cd /home/runner/work/Mirofish/Mirofish/deploy/always-on
+cp .env.example .env
+# edit .env and set at least LLM_API_KEY and ZEP_API_KEY
+bash scripts/validate-deploy.sh --mode base
+docker compose up -d
+docker compose ps
+```
+
+Local endpoints:
+- App/API host: `http://localhost:3000` and `http://localhost:5001`
+- Portal (includes simulator page): `http://localhost:8080` (`/simulator.html`)
+
+### Method 2: Local Ollama provider (for lower-cost/offline-like usage)
+
+Point the LLM settings at your local Ollama OpenAI-compatible endpoint:
 
 ```bash
 ollama serve
 ollama pull llama3.1:8b
-```
 
-### 2) Configure local `.env` for Ollama
-
-```bash
 cd /home/runner/work/Mirofish/Mirofish
 cp -n .env.example .env || true
 chmod +x .cursor/configure-local-llm-provider.sh
@@ -27,19 +42,16 @@ chmod +x .cursor/configure-local-llm-provider.sh
   --env-file /home/runner/work/Mirofish/Mirofish/.env
 ```
 
-### 3) Start dev stack
-
-```bash
-cd /home/runner/work/Mirofish/Mirofish
-chmod +x .cursor/setup-mirofish-env.sh .cursor/start-mirofish-dev.sh
-.cursor/setup-mirofish-env.sh
-MIROFISH_LOCAL_LLM_PROVIDER=ollama .cursor/start-mirofish-dev.sh
-```
-
-The helper script updates:
+This updates:
 - `LLM_BASE_URL=http://127.0.0.1:11434/v1`
 - `LLM_MODEL_NAME=llama3.1:8b`
 - `LLM_API_KEY=none`
+
+### Practical local tips
+
+- Start with smaller models/round counts first to keep latency and RAM usage manageable.
+- For initial simulator tests, use fewer rounds before scaling up.
+- Portal API resolution supports explicit override via `?api=http://host:port`.
 
 ## Deployment Recovery
 

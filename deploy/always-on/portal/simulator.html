@@ -538,9 +538,9 @@ async function pollSimStatus(simId) {
 }
 
 function cancelCurrentRun() {
-  pollState.task++;
-  pollState.sim++;
-  pollState.report++;
+  pollState.task = 0;
+  pollState.sim = 0;
+  pollState.report = 0;
   var simView = document.getElementById('simView');
   if (simView && simView.dataset.cancelNotice !== '1') {
     simView.textContent += '\nPolling cancelled by user.';
