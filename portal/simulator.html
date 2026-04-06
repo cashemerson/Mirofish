@@ -617,9 +617,9 @@ async function pollSimStatus(simId) {
 }
 
 function cancelCurrentRun() {
-  pollState.task = 0;
-  pollState.sim = 0;
-  pollState.report = 0;
+  invalidatePoll('task');
+  invalidatePoll('sim');
+  invalidatePoll('report');
   var simView = document.getElementById('simView');
   if (simView && simView.dataset.cancelNotice !== '1') {
     simView.textContent += '\nPolling cancelled by user.';
@@ -635,7 +635,7 @@ function cancelCurrentRun() {
 }
 
 async function wizardStopSim() {
-  pollState.sim = 0;
+  invalidatePoll('sim');
   try {
     await timedFetch(API + '/api/simulation/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId }) });
     appendPollLog('sim', document.getElementById('simView'), 'Stop requested.');
