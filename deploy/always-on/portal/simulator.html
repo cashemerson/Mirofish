@@ -186,6 +186,7 @@
         <div style="margin-top:16px; display:flex; gap:12px;">
           <button class="btn btn-g" onclick="wizardStartSim()" id="wStartBtn">Start Simulation &#x25B6;</button>
           <button class="btn btn-r" onclick="wizardStopSim()" id="wStopBtn" style="display:none;">Stop &#x25A0;</button>
+          <button class="btn" onclick="cancelCurrentRun()" id="wCancelBtn">Cancel Current Run</button>
           <button class="btn btn-p" onclick="wizardGenReport()" id="wReportBtn" style="display:none;">Generate Report &rarr;</button>
           <button class="btn" onclick="showStep(2)">&larr; Back</button>
         </div>
@@ -329,6 +330,11 @@ var wState = { projectId: null, graphId: null, simId: null, reportId: null };
 var wFiles = [];
 var pollAbort = null;
 var pollState = { task: 0, sim: 0, report: 0 };
+var POLL_INTERVAL_MS = 5000;
+var POLL_BACKOFF_MAX_MS = 30000;
+
+function isTransientPollStatus(status) { return status === 429 || status >= 500; }
+function nextBackoffDelay(currentDelay) { return Math.min(currentDelay * 2, POLL_BACKOFF_MAX_MS); }
 
 function showStep(n) {
   document.querySelectorAll('.wstep').forEach(function(s, i) { s.classList.toggle('active', i === n); });
@@ -419,13 +425,18 @@ async function wizardBuildGraph() {
 
 async function pollTask(taskId, el) {
   var myToken = ++pollState.task;
+  var delayMs = POLL_INTERVAL_MS;
   for (var i = 0; i < 60; i++) {
     if (myToken !== pollState.task) return;
-    await new Promise(function(r) { setTimeout(r, 5000); });
+    await new Promise(function(r) { setTimeout(r, delayMs); });
     if (myToken !== pollState.task) return;
     try {
       var res = await timedFetch(API + '/api/graph/task/' + taskId);
-      if (!res.ok) continue;
+      if (!res.ok) {
+        delayMs = isTransientPollStatus(res.status) ? nextBackoffDelay(delayMs) : POLL_INTERVAL_MS;
+        continue;
+      }
+      delayMs = POLL_INTERVAL_MS;
       var data = await res.json();
       el.textContent += '\n[' + new Date().toLocaleTimeString() + '] Status: ' + (data.status || 'unknown');
       if (data.status === 'completed' || data.status === 'done') {
@@ -438,7 +449,7 @@ async function pollTask(taskId, el) {
         el.textContent += '\nBuild failed: ' + (data.error || '');
         return;
       }
-    } catch (err) { el.textContent += '\nPoll error: ' + err.message; }
+    } catch (err) { el.textContent += '\nPoll error: ' + err.message; delayMs = nextBackoffDelay(delayMs); }
   }
 }
 
@@ -487,13 +498,19 @@ async function wizardStartSim() {
 async function pollSimStatus(simId) {
   var sv = document.getElementById('simView');
   var myToken = ++pollState.sim;
+  var delayMs = POLL_INTERVAL_MS;
   for (var i = 0; i < 120; i++) {
     if (pollState.sim !== myToken) return;
-    await new Promise(function(r) { setTimeout(r, 5000); });
+    await new Promise(function(r) { setTimeout(r, delayMs); });
     if (pollState.sim !== myToken) return;
     try {
       var res = await timedFetch(API + '/api/simulation/' + simId + '/run-status');
-      if (!res.ok) { sv.textContent += '\n[' + new Date().toLocaleTimeString() + '] Poll: HTTP ' + res.status; continue; }
+      if (!res.ok) {
+        sv.textContent += '\n[' + new Date().toLocaleTimeString() + '] Poll: HTTP ' + res.status;
+        delayMs = isTransientPollStatus(res.status) ? nextBackoffDelay(delayMs) : POLL_INTERVAL_MS;
+        continue;
+      }
+      delayMs = POLL_INTERVAL_MS;
       var data = await res.json();
       sv.textContent += '\n[' + new Date().toLocaleTimeString() + '] ' + esc(data.status || 'polling...');
       if (data.status === 'completed' || data.status === 'done') {
@@ -511,9 +528,27 @@ async function pollSimStatus(simId) {
         pollState.sim = 0;
         return;
       }
-    } catch (err) { sv.textContent += '\n' + err.message; }
+    } catch (err) { sv.textContent += '\n' + err.message; delayMs = nextBackoffDelay(delayMs); }
   }
   if (pollState.sim === myToken) pollState.sim = 0;
+}
+
+function cancelCurrentRun() {
+  pollState.task++;
+  pollState.sim++;
+  pollState.report++;
+  var simView = document.getElementById('simView');
+  if (simView && simView.dataset.cancelNotice !== '1') {
+    simView.textContent += '\nPolling cancelled by user.';
+    simView.dataset.cancelNotice = '1';
+  }
+  var reportView = document.getElementById('reportView');
+  if (reportView && reportView.dataset.cancelNotice !== '1') {
+    reportView.textContent += '\nPolling cancelled by user.';
+    reportView.dataset.cancelNotice = '1';
+  }
+  document.getElementById('wStopBtn').style.display = 'none';
+  document.getElementById('wStartBtn').style.display = 'inline-flex';
 }
 
 async function wizardStopSim() {
@@ -544,13 +579,19 @@ async function wizardGenReport() {
 async function pollReportStatus(id) {
   var rv = document.getElementById('reportView');
   var myToken = ++pollState.report;
+  var delayMs = POLL_INTERVAL_MS;
   for (var i = 0; i < 60; i++) {
     if (myToken !== pollState.report) return;
-    await new Promise(function(r) { setTimeout(r, 5000); });
+    await new Promise(function(r) { setTimeout(r, delayMs); });
     if (myToken !== pollState.report) return;
     try {
       var res = await timedFetch(API + '/api/report/' + encodeURIComponent(id));
-      if (!res.ok) { rv.textContent += '\n[' + new Date().toLocaleTimeString() + '] HTTP ' + res.status; continue; }
+      if (!res.ok) {
+        rv.textContent += '\n[' + new Date().toLocaleTimeString() + '] HTTP ' + res.status;
+        delayMs = isTransientPollStatus(res.status) ? nextBackoffDelay(delayMs) : POLL_INTERVAL_MS;
+        continue;
+      }
+      delayMs = POLL_INTERVAL_MS;
       var data = await res.json();
       if (data.content || data.sections) {
         rv.textContent = 'Report ready!\n\n' + (data.content || JSON.stringify(data.sections, null, 2));
@@ -560,7 +601,7 @@ async function pollReportStatus(id) {
         return;
       }
       rv.textContent += '\n[' + new Date().toLocaleTimeString() + '] generating...';
-    } catch (err) { rv.textContent += '\n' + err.message; }
+    } catch (err) { rv.textContent += '\n' + err.message; delayMs = nextBackoffDelay(delayMs); }
   }
 }
 

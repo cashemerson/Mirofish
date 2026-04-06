@@ -1128,7 +1128,15 @@ async function checkEndpoint(url) {
 
 async function runHealthChecks() {
   var log = document.getElementById('healthLog');
-  log.innerHTML = '<div class="log-line"><span class="ts dim">' + new Date().toLocaleTimeString() + '</span> Running health checks...</div>';
+  log.innerHTML = '';
+  function appendLogLine(html) {
+    var frag = document.createDocumentFragment();
+    var wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    while (wrap.firstChild) frag.appendChild(wrap.firstChild);
+    log.appendChild(frag);
+  }
+  appendLogLine('<div class="log-line"><span class="ts dim">' + new Date().toLocaleTimeString() + '</span> Running health checks...</div>');
 
   var checks = [
     { url: API_BASE + '/', label: 'App Frontend', dot: 'dotApp', status: 'statusApp', health: 'healthFrontend' },
@@ -1142,13 +1150,13 @@ async function runHealthChecks() {
     var ts = new Date().toLocaleTimeString();
     var isUp = result.ok;
     if (isUp) {
-      log.innerHTML += '<div class="log-line"><span class="ts dim">' + ts + '</span> <span style="color:var(--green)">\u2713</span> ' + esc(check.label) + ': HTTP ' + result.status + ' (' + result.ms + 'ms)</div>';
+      appendLogLine('<div class="log-line"><span class="ts dim">' + ts + '</span> <span style="color:var(--green)">\u2713</span> ' + esc(check.label) + ': HTTP ' + result.status + ' (' + result.ms + 'ms)</div>');
       setStatusDot(check.dot, true);
       document.getElementById(check.status).textContent = result.ms + 'ms';
       document.getElementById(check.health).textContent = 'Healthy';
       document.getElementById(check.health).style.color = 'var(--green)';
     } else {
-      log.innerHTML += '<div class="log-line"><span class="ts dim">' + ts + '</span> <span style="color:var(--red)">\u2717</span> ' + esc(check.label) + ': ' + esc(result.error || 'HTTP ' + result.status) + ' (' + result.ms + 'ms)</div>';
+      appendLogLine('<div class="log-line"><span class="ts dim">' + ts + '</span> <span style="color:var(--red)">\u2717</span> ' + esc(check.label) + ': ' + esc(result.error || 'HTTP ' + result.status) + ' (' + result.ms + 'ms)</div>');
       setStatusDot(check.dot, false);
       document.getElementById(check.status).textContent = 'error';
       document.getElementById(check.health).textContent = 'Down';
@@ -1159,7 +1167,7 @@ async function runHealthChecks() {
   document.getElementById('healthCaddy').textContent = document.getElementById('healthFrontend').textContent;
   document.getElementById('healthCaddy').style.color = document.getElementById('healthFrontend').style.color;
 
-  log.innerHTML += '<div class="log-line"><span class="ts dim">' + new Date().toLocaleTimeString() + '</span> Health checks complete.</div>';
+  appendLogLine('<div class="log-line"><span class="ts dim">' + new Date().toLocaleTimeString() + '</span> Health checks complete.</div>');
 }
 
 // Auto-check on load (only status bar, defer tab data to tab activation)
