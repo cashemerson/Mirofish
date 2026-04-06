@@ -141,6 +141,10 @@ prewarm_dependencies() {
   cd "${REPO_DIR}"
   patch_vite_allowed_hosts
   cp --update=none .env.example .env || true
+  if [ -f "${REPO_DIR}/.cursor/configure-local-llm-provider.sh" ]; then
+    chmod +x "${REPO_DIR}/.cursor/configure-local-llm-provider.sh" || true
+    "${REPO_DIR}/.cursor/configure-local-llm-provider.sh" --provider ollama --env-file "${REPO_DIR}/.env" >/dev/null || true
+  fi
   export PATH="$HOME/.local/bin:$PATH"
   npm run setup:all
 }

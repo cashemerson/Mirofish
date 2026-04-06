@@ -2,6 +2,45 @@
 
 AI-powered ontology generation and simulation platform.
 
+## Local Ollama integration
+
+Yes — you can run locally with Ollama using its OpenAI-compatible endpoint.
+
+### 1) Start Ollama and pull a model
+
+```bash
+ollama serve
+ollama pull llama3.1:8b
+```
+
+### 2) Configure local `.env` for Ollama
+
+```bash
+cd /home/runner/work/Mirofish/Mirofish
+cp -n .env.example .env || true
+chmod +x .cursor/configure-local-llm-provider.sh
+.cursor/configure-local-llm-provider.sh \
+  --provider ollama \
+  --base-url http://127.0.0.1:11434/v1 \
+  --model llama3.1:8b \
+  --api-key none \
+  --env-file /home/runner/work/Mirofish/Mirofish/.env
+```
+
+### 3) Start dev stack
+
+```bash
+cd /home/runner/work/Mirofish/Mirofish
+chmod +x .cursor/setup-mirofish-env.sh .cursor/start-mirofish-dev.sh
+.cursor/setup-mirofish-env.sh
+MIROFISH_LOCAL_LLM_PROVIDER=ollama .cursor/start-mirofish-dev.sh
+```
+
+The helper script updates:
+- `LLM_BASE_URL=http://127.0.0.1:11434/v1`
+- `LLM_MODEL_NAME=llama3.1:8b`
+- `LLM_API_KEY=none`
+
 ## Deployment Recovery
 
 This branch (`cursor/mirofish-deployment-recovery-2ae4`) contains a complete, tested deployment stack for MiroFish. It fixes the broken state where `/root/mirofish-deploy` was not a git repo and `scripts/` was empty.
