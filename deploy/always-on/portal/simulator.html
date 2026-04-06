@@ -476,8 +476,9 @@ async function wizardCreateSim() {
 
 async function wizardStartSim() {
   if (!wState.simId) { document.getElementById('simView').textContent = 'Create simulation first.'; return; }
-  if (pollState.sim !== 0) return;
+  if (pollState.sim !== 0) { document.getElementById('simView').textContent += '\nSimulation already running.'; return; }
   var sv = document.getElementById('simView');
+  sv.dataset.cancelNotice = '0';
   var rounds = parseInt(document.getElementById('wRounds').value) || 10;
   sv.textContent = 'Starting simulation (' + rounds + ' rounds)...';
   try {
@@ -565,6 +566,7 @@ async function wizardGenReport() {
   if (!wState.simId) return;
   showStep(4);
   var rv = document.getElementById('reportView');
+  rv.dataset.cancelNotice = '0';
   rv.textContent = 'Generating report...';
   try {
     var res = await timedFetch(API + '/api/report/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId }) }, 30000);

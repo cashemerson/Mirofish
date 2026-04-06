@@ -1130,6 +1130,7 @@ async function runHealthChecks() {
   var log = document.getElementById('healthLog');
   log.innerHTML = '';
   function appendLogLine(html) {
+    // html must be constructed from trusted literals + escaped dynamic values only.
     var frag = document.createDocumentFragment();
     var wrap = document.createElement('div');
     wrap.innerHTML = html;
