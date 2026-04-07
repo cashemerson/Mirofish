@@ -4,10 +4,11 @@ set -euo pipefail
 APP_URL="${APP_URL:-https://app.cesimulation.it.com}"
 PORTAL_URL="${PORTAL_URL:-https://portal.cesimulation.it.com}"
 API_PATH="${API_PATH:-/api/simulation/history?limit=1}"
+ONTOLOGY_PATH="${ONTOLOGY_PATH:-/api/graph/ontology/generate}"
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/smoke-check.sh [--app URL] [--portal URL] [--api URL_OR_PATH]
+Usage: ./scripts/smoke-check.sh [--app URL] [--portal URL] [--api URL_OR_PATH] [--ontology PATH_OR_URL]
 
 Examples:
   ./scripts/smoke-check.sh \
@@ -18,7 +19,8 @@ Examples:
   ./scripts/smoke-check.sh \
     --app https://app.example.com \
     --portal https://portal.example.com \
-    --api https://app.example.com/api/simulation/history?limit=1
+    --api https://app.example.com/api/simulation/history?limit=1 \
+    --ontology /api/graph/ontology/generate
 EOF
 }
 
@@ -35,6 +37,10 @@ while [ "${#}" -gt 0 ]; do
     --api)
       shift
       API_PATH="${1:-}"
+      ;;
+    --ontology)
+      shift
+      ONTOLOGY_PATH="${1:-}"
       ;;
     -h|--help)
       usage
@@ -56,6 +62,12 @@ if [[ "${API_PATH}" == http://* || "${API_PATH}" == https://* ]]; then
   API_URL="${API_PATH}"
 else
   API_URL="${APP_URL}${API_PATH}"
+fi
+
+if [[ "${ONTOLOGY_PATH}" == http://* || "${ONTOLOGY_PATH}" == https://* ]]; then
+  ONTOLOGY_URL="${ONTOLOGY_PATH}"
+else
+  ONTOLOGY_URL="${APP_URL}${ONTOLOGY_PATH}"
 fi
 
 echo "Running smoke checks..."
@@ -81,10 +93,14 @@ echo "== Public endpoint checks =="
 APP_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" "${APP_URL}/")"
 PORTAL_STATUS_NOAUTH="$(curl -sk -o /dev/null -w "%{http_code}" "${PORTAL_URL}/")"
 API_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" "${API_URL}")"
+ONTOLOGY_GET_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" "${ONTOLOGY_URL}")"
+ONTOLOGY_POST_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" -X POST "${ONTOLOGY_URL}")"
 
 echo "App status: ${APP_STATUS} (expected 200/301/302/307/308)"
 echo "Portal status: ${PORTAL_STATUS_NOAUTH} (expected 200)"
 echo "API status: ${API_STATUS} (expected 200/4xx JSON, but not 5xx)"
+echo "Ontology GET status: ${ONTOLOGY_GET_STATUS} (expected non-5xx)"
+echo "Ontology POST status: ${ONTOLOGY_POST_STATUS} (expected endpoint exists: non-404/non-5xx)"
 echo
 
 FAIL=0
@@ -102,6 +118,24 @@ fi
 case "${API_STATUS}" in
   500|502|503|504)
     echo "FAIL: API returned server error ${API_STATUS}"
+    FAIL=1
+    ;;
+esac
+
+case "${ONTOLOGY_GET_STATUS}" in
+  500|502|503|504)
+    echo "FAIL: ontology GET returned server error ${ONTOLOGY_GET_STATUS}"
+    FAIL=1
+    ;;
+esac
+
+case "${ONTOLOGY_POST_STATUS}" in
+  404)
+    echo "FAIL: ontology POST returned 404 (likely proxy/backend version mismatch)"
+    FAIL=1
+    ;;
+  500|502|503|504)
+    echo "FAIL: ontology POST returned server error ${ONTOLOGY_POST_STATUS}"
     FAIL=1
     ;;
 esac

@@ -92,6 +92,14 @@ fi
 
 echo "API generate endpoint (GET should be non-5xx even if method not allowed):"
 curl -skS -o /dev/null -w "HTTP %{http_code}\n" "${API_URL}" || true
+echo "API generate endpoint (POST should be non-404/non-5xx):"
+POST_STATUS="$(curl -skS -o /dev/null -w "%{http_code}" -X POST "${API_URL}" || true)"
+echo "HTTP ${POST_STATUS}"
+if [ "${POST_STATUS}" = "404" ]; then
+  echo "WARNING: POST ${API_URL} returned 404 (frontend/backend or proxy route mismatch likely)."
+elif [[ "${POST_STATUS}" =~ ^5 ]]; then
+  echo "WARNING: POST ${API_URL} returned ${POST_STATUS} (backend/proxy runtime error)."
+fi
 echo
 
 echo "== In-container connectivity tests =="

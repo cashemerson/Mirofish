@@ -221,6 +221,15 @@ cd /root/mirofish-deploy/deploy/always-on
 bash scripts/diagnose-network-error.sh --app https://cesimulation.it.com --portal https://portal.cesimulation.it.com --api-path /api/graph/ontology/generate
 ```
 
+### 404 on ontology generation (`POST /api/graph/ontology/generate`)
+
+```
+cd /root/mirofish-deploy/deploy/always-on
+bash scripts/triage-ontology-404.sh --app https://cesimulation.it.com --portal https://portal.cesimulation.it.com
+```
+
+This ordered triage checks portal/API target assumptions, external endpoint status (including ontology POST), running image versions, and then runs smoke + network diagnostics.
+
 ### Full repair (rewrites compose, nginx, Caddyfile, restarts)
 
 ```
@@ -263,4 +272,5 @@ docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d --force-rec
 | `deploy/always-on/scripts/smoke-check.sh` | HTTP smoke tests |
 | `deploy/always-on/scripts/repair-deploy.sh` | One-command repair |
 | `deploy/always-on/scripts/diagnose-network-error.sh` | Network error diagnostics |
+| `deploy/always-on/scripts/triage-ontology-404.sh` | Ordered triage for ontology 404 |
 | `portal/index.html` | Portal launcher page |

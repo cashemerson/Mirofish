@@ -11,6 +11,7 @@ This folder contains a hardened, repeatable deployment for running MiroFish cont
 - `scripts/render-caddyfile.sh`: renders concrete `Caddyfile` from `.env`
 - `scripts/repair-deploy.sh`: one-command recovery for drifted deployments
 - `scripts/diagnose-network-error.sh`: targeted checks for frontend "Network Error" paths
+- `scripts/triage-ontology-404.sh`: ordered triage for `POST /api/graph/ontology/generate` returning 404
 - `scripts/bootstrap-server.sh`: full from-scratch server bootstrap (nuke + reclone + configure + start)
 - bilingual portal UI (English/Chinese) with in-page language switch
 
@@ -156,7 +157,8 @@ Or run the built-in smoke check:
 ./scripts/smoke-check.sh \
   --app https://your-domain \
   --portal https://portal.your-domain \
-  --api https://your-domain/api/simulation/history?limit=1
+  --api https://your-domain/api/simulation/history?limit=1 \
+  --ontology /api/graph/ontology/generate
 ```
 
 If the UI shows `Network Error` during file upload or ontology generation, run:
@@ -169,6 +171,14 @@ If the UI shows `Network Error` during file upload or ontology generation, run:
 ```
 
 This script verifies DNS, TLS reachability, container health, and endpoint responses, then prints the most relevant logs from `caddy` and `mirofish`.
+
+For an ordered 404 triage workflow (portal target + proxy path + image/version drift + diagnostics):
+
+```bash
+./scripts/triage-ontology-404.sh \
+  --app https://your-domain \
+  --portal https://portal.your-domain
+```
 
 If the app UI shows `Request failed with status code 404` during ontology generation, make sure app env includes:
 
