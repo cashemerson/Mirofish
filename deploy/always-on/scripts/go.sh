@@ -43,7 +43,7 @@ LLM_KEY="$(grep '^LLM_API_KEY=' .env | cut -d= -f2-)"
 ZEP_KEY="$(grep '^ZEP_API_KEY=' .env | cut -d= -f2-)"
 LLM_KEY_LOWER="$(printf '%s' "${LLM_KEY}" | tr '[:upper:]' '[:lower:]')"
 ZEP_KEY_LOWER="$(printf '%s' "${ZEP_KEY}" | tr '[:upper:]' '[:lower:]')"
-if [ -z "${LLM_KEY}" ] || [ "${LLM_KEY}" = "replace_with_openai_or_compatible_key" ] || [[ "${LLM_KEY_LOWER}" == sk-your-* ]] || [[ "${LLM_KEY_LOWER}" == sk-replace-* ]] || [[ "${LLM_KEY_LOWER}" == sk-proj- ]]; then
+if [ -z "${LLM_KEY}" ] || [ "${LLM_KEY}" = "replace_with_openai_or_compatible_key" ] || [[ "${LLM_KEY_LOWER}" == sk-your-* ]] || [[ "${LLM_KEY_LOWER}" == sk-replace-* ]] || [[ "${LLM_KEY_LOWER}" == sk-proj-* ]]; then
   echo "FATAL: LLM_API_KEY missing or still using a sample value in .env"
   exit 1
 fi
@@ -114,11 +114,8 @@ echo ""
 
 echo "[5/8] Verifying mirofish image availability..."
 MIROFISH_IMAGE="$(
-  docker compose -f docker-compose.yml -f docker-compose.tls.yml config | awk '
-    $1=="mirofish:" { in_mirofish=1; next }
-    in_mirofish && $1=="image:" { print $2; exit }
-    in_mirofish && /^[^[:space:]]/ { in_mirofish=0 }
-  '
+  docker compose -f docker-compose.yml -f docker-compose.tls.yml config | \
+    sed -n '/^  mirofish:$/,/^  [^ ]/s/^    image: //p' | head -n 1
 )"
 if [ -z "${MIROFISH_IMAGE}" ]; then
   echo "FATAL: Could not resolve mirofish image from compose config."
