@@ -7,10 +7,10 @@ ENV_FILE="${ROOT_DIR}/.env"
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/configure-llm-provider.sh --provider ollama|vllm [options]
+  ./scripts/configure-llm-provider.sh --provider ollama|vllm|openrouter [options]
 
 Required:
-  --provider ollama|vllm
+  --provider ollama|vllm|openrouter
 
 Optional:
   --base-url URL      Override LLM_BASE_URL
@@ -24,6 +24,9 @@ Examples:
 
   # Ollama via host gateway
   ./scripts/configure-llm-provider.sh --provider ollama --base-url http://host.docker.internal:11434/v1 --model llama3.1:8b
+
+  # OpenRouter (requires real API key)
+  ./scripts/configure-llm-provider.sh --provider openrouter --api-key sk-or-v1-...
 EOF
 }
 
@@ -101,8 +104,13 @@ case "${PROVIDER}" in
     [ -n "${MODEL}" ] || MODEL="llama3.1:8b"
     [ -n "${API_KEY}" ] || API_KEY="none"
     ;;
+  openrouter)
+    [ -n "${BASE_URL}" ] || BASE_URL="https://openrouter.ai/api/v1"
+    [ -n "${MODEL}" ] || MODEL="openai/gpt-4o-mini"
+    [ -n "${API_KEY}" ] || fail "--provider openrouter requires --api-key"
+    ;;
   *)
-    fail "--provider must be one of: ollama, vllm"
+    fail "--provider must be one of: ollama, vllm, openrouter"
     ;;
 esac
 

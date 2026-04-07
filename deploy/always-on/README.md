@@ -64,6 +64,16 @@ Configure **Ollama** (alternative):
   --api-key none
 ```
 
+Configure **OpenRouter** (hosted API):
+
+```bash
+./scripts/configure-llm-provider.sh \
+  --provider openrouter \
+  --base-url https://openrouter.ai/api/v1 \
+  --model openai/gpt-4o-mini \
+  --api-key sk-or-v1-REPLACE_WITH_REAL_KEY
+```
+
 Then continue with standard preflight + startup:
 
 ```bash
