@@ -1,1 +1,1 @@
-FROM ghcr.io/666ghj/mirofish:latest
+FROM ghcr.io/cashemerson/mirofish:latest

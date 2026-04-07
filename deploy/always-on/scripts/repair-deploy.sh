@@ -134,7 +134,7 @@ services:
       start_period: 20s
 
   mirofish:
-    image: ghcr.io/666ghj/mirofish:latest
+    image: ghcr.io/cashemerson/mirofish:latest
     container_name: mirofish
     restart: unless-stopped
     command: >
