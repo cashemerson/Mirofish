@@ -88,6 +88,7 @@ validate_not_sample_key() {
   local lowered
   lowered="$(printf '%s' "${value}" | tr '[:upper:]' '[:lower:]')"
 
+  # Keep this list aligned with placeholder examples used in deployment docs/scripts.
   case "${lowered}" in
     sk-your-*|sk-replace-*|your-zep-key|replace_with_zep_key|replace_with_openai_or_compatible_key)
       fail "${name} is using a sample key value: ${value}"

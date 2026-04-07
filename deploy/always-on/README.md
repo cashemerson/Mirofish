@@ -241,6 +241,8 @@ export ACME_EMAIL="your-email@example.com"
 bash <(curl -fsSL https://raw.githubusercontent.com/cashemerson/Mirofish/cursor/mirofish-deployment-recovery-2ae4/deploy/always-on/scripts/bootstrap-server.sh)
 ```
 
+The values above are intentional placeholders and will be rejected by preflight checks until replaced.
+
 Or manually:
 
 ```bash
