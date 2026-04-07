@@ -143,7 +143,11 @@ curl -I https://your-domain
 curl -I https://app.your-domain
 curl -I https://portal.your-domain
 curl "https://your-domain/api/simulation/history?limit=1"
+curl -X POST "https://your-domain/api/graph/ontology/generate" -i
 ```
+
+`/api/graph/ontology/generate` is a **POST** endpoint.  
+If you use `GET`, `405 Method Not Allowed` is expected and confirms routing reached backend.
 
 Or run the built-in smoke check:
 
@@ -164,6 +168,14 @@ If the UI shows `Network Error` during file upload or ontology generation, run:
 ```
 
 This script verifies DNS, TLS reachability, container health, and endpoint responses, then prints the most relevant logs from `caddy` and `mirofish`.
+
+If the app UI shows `Request failed with status code 404` during ontology generation, make sure app env includes:
+
+```env
+VITE_API_BASE_URL=/api
+```
+
+`docker-compose.yml` now defaults this automatically to `/api` when unset.
 
 API base URL resolution used by portal pages:
 - `?api=https://your-domain` query parameter (highest priority)
