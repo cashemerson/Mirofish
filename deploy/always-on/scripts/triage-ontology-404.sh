@@ -70,7 +70,7 @@ curl -skS -o /dev/null -w "HTTP %{http_code}\n" "${PORTAL_URL}/" || true
 echo "Ontology GET:"
 curl -skS -o /dev/null -w "HTTP %{http_code}\n" "${ONTOLOGY_URL}" || true
 echo "Ontology POST:"
-POST_STATUS="$(curl -skS -o /dev/null -w "%{http_code}" -X POST "${ONTOLOGY_URL}" || true)"
+POST_STATUS="$(curl -skS -o /dev/null -w "%{http_code}" -X POST -d '' "${ONTOLOGY_URL}" || true)"
 echo "HTTP ${POST_STATUS}"
 if [ "${POST_STATUS}" = "404" ]; then
   echo "Signal: 404 on ontology POST indicates routing/deploy mismatch, not API quota."

@@ -94,7 +94,7 @@ APP_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" "${APP_URL}/")"
 PORTAL_STATUS_NOAUTH="$(curl -sk -o /dev/null -w "%{http_code}" "${PORTAL_URL}/")"
 API_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" "${API_URL}")"
 ONTOLOGY_GET_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" "${ONTOLOGY_URL}")"
-ONTOLOGY_POST_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" -X POST "${ONTOLOGY_URL}")"
+ONTOLOGY_POST_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" -X POST -d '' "${ONTOLOGY_URL}")"
 
 echo "App status: ${APP_STATUS} (expected 200/301/302/307/308)"
 echo "Portal status: ${PORTAL_STATUS_NOAUTH} (expected 200)"
