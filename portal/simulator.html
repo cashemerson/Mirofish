@@ -566,6 +566,73 @@ async function wizardCreateSim() {
   } catch (err) { sv.textContent = 'Error: ' + (err.name === 'AbortError' ? 'timeout' : err.message); }
 }
 
+function extractPreparePayload(data) {
+  if (!data || typeof data !== 'object') return {};
+  if (data.data && typeof data.data === 'object') return data.data;
+  return data;
+}
+
+async function ensureSimulationPrepared(simId, el) {
+  appendPollLog('sim', el, 'Preparing simulation environment...');
+  var prepareRes = await timedFetch(API + '/api/simulation/prepare', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ simulation_id: simId })
+  }, 30000);
+  if (!prepareRes.ok) {
+    appendPollLog('sim', el, 'Prepare API error: HTTP ' + prepareRes.status);
+    return false;
+  }
+
+  var prepareRaw = await prepareRes.json();
+  var preparePayload = extractPreparePayload(prepareRaw);
+  var prepareStatus = String(preparePayload.status || '').toLowerCase();
+  var prepareTaskId = preparePayload.task_id || null;
+  if (prepareStatus === 'ready' || prepareStatus === 'completed' || preparePayload.already_prepared === true) {
+    appendPollLog('sim', el, 'Environment ready.');
+    return true;
+  }
+
+  var delayMs = POLL_INTERVAL_MS;
+  for (var i = 0; i < 120; i++) {
+    await new Promise(function(r) { setTimeout(r, delayMs); });
+    try {
+      var body = { simulation_id: simId };
+      if (prepareTaskId) body.task_id = prepareTaskId;
+      var statusRes = await timedFetch(API + '/api/simulation/prepare/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }, 30000);
+      if (!statusRes.ok) {
+        appendPollLog('sim', el, '[' + new Date().toLocaleTimeString() + '] Prepare poll: HTTP ' + statusRes.status);
+        delayMs = isTransientPollStatus(statusRes.status) ? nextBackoffDelay(delayMs) : POLL_INTERVAL_MS;
+        continue;
+      }
+
+      delayMs = POLL_INTERVAL_MS;
+      var statusRaw = await statusRes.json();
+      var statusPayload = extractPreparePayload(statusRaw);
+      var status = String(statusPayload.status || '').toLowerCase();
+      appendPollLog('sim', el, '[' + new Date().toLocaleTimeString() + '] Prepare: ' + (status || 'processing'));
+
+      if (status === 'ready' || status === 'completed' || statusPayload.already_prepared === true) {
+        appendPollLog('sim', el, 'Environment ready.');
+        return true;
+      }
+      if (status === 'failed' || status === 'error') {
+        appendPollLog('sim', el, 'Prepare failed: ' + (statusPayload.error || statusPayload.message || 'unknown error'));
+        return false;
+      }
+    } catch (err) {
+      appendPollLog('sim', el, 'Prepare poll error: ' + err.message);
+      delayMs = nextBackoffDelay(delayMs);
+    }
+  }
+  appendPollLog('sim', el, 'Prepare timeout.');
+  return false;
+}
+
 async function wizardStartSim() {
   if (!wState.simId) { document.getElementById('simView').textContent = 'Create simulation first.'; return; }
   if (pollState.sim !== 0) {
@@ -578,8 +645,15 @@ async function wizardStartSim() {
   sv.dataset.cancelNotice = '0';
   var rounds = parseInt(document.getElementById('wRounds').value) || 10;
   hidePayloadToggle('simRawBtn');
-  sv.textContent = 'Starting simulation (' + rounds + ' rounds)...';
+  setPollLog('sim', sv, 'Starting simulation setup...');
   try {
+    var prepared = await ensureSimulationPrepared(wState.simId, sv);
+    if (!prepared) {
+      document.getElementById('wStartBtn').style.display = 'inline-flex';
+      document.getElementById('wStopBtn').style.display = 'none';
+      return;
+    }
+    appendPollLog('sim', sv, 'Starting simulation run (' + rounds + ' rounds)...');
     var res = await timedFetch(API + '/api/simulation/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ simulation_id: wState.simId, max_rounds: rounds }) }, 30000);
     if (!res.ok) { sv.textContent += '\nAPI error: HTTP ' + res.status; return; }
     var data = await res.json();
