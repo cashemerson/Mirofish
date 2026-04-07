@@ -106,6 +106,8 @@ PORTAL_DOMAIN=portal.cesimulation.it.com
 ACME_EMAIL=your-email@example.com
 ```
 
+Use real values only; malformed placeholders such as `sk-proj-` are rejected by preflight checks.
+
 You can use `sed` for non-interactive editing:
 
 ```

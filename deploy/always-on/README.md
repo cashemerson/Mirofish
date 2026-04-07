@@ -113,7 +113,7 @@ Edit `.env` and set:
 - `PORTAL_DOMAIN=portal.your-domain`
 - `ACME_EMAIL=you@example.com`
 - use real values only (no placeholders like `replace_with_*` / `example.com`)
-- do **not** use sample key patterns like `sk-your-*`, `sk-replace-*`, or `your-zep-key`
+- do **not** use sample key patterns like `sk-your-*`, `sk-replace-*`, malformed `sk-proj-`, or `your-zep-key`
 - `ACME_EMAIL` must be a valid email format (`name@domain.tld`)
 - optional but recommended for large ontology/doc uploads:
   - `API_MAX_UPLOAD_SIZE=200MB`

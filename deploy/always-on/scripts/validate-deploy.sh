@@ -90,7 +90,7 @@ validate_not_sample_key() {
 
   # Keep this list aligned with placeholder examples used in deployment docs/scripts.
   case "${lowered}" in
-    sk-your-*|sk-replace-*|your-zep-key|replace_with_zep_key|replace_with_openai_or_compatible_key)
+    sk-your-*|sk-replace-*|sk-proj-|your-zep-key|replace_with_zep_key|replace_with_openai_or_compatible_key)
       fail "${name} is using a sample key value: ${value}"
       ;;
   esac

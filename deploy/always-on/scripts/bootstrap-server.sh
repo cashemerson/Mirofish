@@ -114,11 +114,13 @@ fi
 
 LLM_KEY_CHECK="$(grep '^LLM_API_KEY=' "${DEPLOY_DIR}/.env" | cut -d= -f2-)"
 ZEP_KEY_CHECK="$(grep '^ZEP_API_KEY=' "${DEPLOY_DIR}/.env" | cut -d= -f2-)"
-if [ -z "${LLM_KEY_CHECK}" ] || [ "${LLM_KEY_CHECK}" = "replace_with_openai_or_compatible_key" ]; then
+LLM_KEY_CHECK_LOWER="$(printf '%s' "${LLM_KEY_CHECK}" | tr '[:upper:]' '[:lower:]')"
+ZEP_KEY_CHECK_LOWER="$(printf '%s' "${ZEP_KEY_CHECK}" | tr '[:upper:]' '[:lower:]')"
+if [ -z "${LLM_KEY_CHECK}" ] || [ "${LLM_KEY_CHECK}" = "replace_with_openai_or_compatible_key" ] || [[ "${LLM_KEY_CHECK_LOWER}" == sk-your-* ]] || [[ "${LLM_KEY_CHECK_LOWER}" == sk-replace-* ]] || [[ "${LLM_KEY_CHECK_LOWER}" == sk-proj- ]]; then
   echo ""
   echo "  WARNING: LLM_API_KEY is not set. Edit ${DEPLOY_DIR}/.env before starting."
 fi
-if [ -z "${ZEP_KEY_CHECK}" ] || [ "${ZEP_KEY_CHECK}" = "replace_with_zep_key" ]; then
+if [ -z "${ZEP_KEY_CHECK}" ] || [ "${ZEP_KEY_CHECK}" = "replace_with_zep_key" ] || [ "${ZEP_KEY_CHECK_LOWER}" = "your-zep-key" ]; then
   echo ""
   echo "  WARNING: ZEP_API_KEY is not set. Edit ${DEPLOY_DIR}/.env before starting."
 fi
