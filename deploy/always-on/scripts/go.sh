@@ -17,12 +17,14 @@ if [ ! -f .env ]; then
 fi
 LLM_KEY="$(grep '^LLM_API_KEY=' .env | cut -d= -f2-)"
 ZEP_KEY="$(grep '^ZEP_API_KEY=' .env | cut -d= -f2-)"
-if [ -z "${LLM_KEY}" ] || [ "${LLM_KEY}" = "replace_with_openai_or_compatible_key" ]; then
-  echo "FATAL: LLM_API_KEY not set in .env"
+LLM_KEY_LOWER="$(printf '%s' "${LLM_KEY}" | tr '[:upper:]' '[:lower:]')"
+ZEP_KEY_LOWER="$(printf '%s' "${ZEP_KEY}" | tr '[:upper:]' '[:lower:]')"
+if [ -z "${LLM_KEY}" ] || [ "${LLM_KEY}" = "replace_with_openai_or_compatible_key" ] || [[ "${LLM_KEY_LOWER}" == sk-your-* ]] || [[ "${LLM_KEY_LOWER}" == sk-replace-* ]]; then
+  echo "FATAL: LLM_API_KEY missing or still using a sample value in .env"
   exit 1
 fi
-if [ -z "${ZEP_KEY}" ] || [ "${ZEP_KEY}" = "replace_with_zep_key" ]; then
-  echo "FATAL: ZEP_API_KEY not set in .env"
+if [ -z "${ZEP_KEY}" ] || [ "${ZEP_KEY}" = "replace_with_zep_key" ] || [ "${ZEP_KEY_LOWER}" = "your-zep-key" ]; then
+  echo "FATAL: ZEP_API_KEY missing or still using a sample value in .env"
   exit 1
 fi
 echo "  LLM_API_KEY: set (${#LLM_KEY} chars)"

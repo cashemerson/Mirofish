@@ -82,6 +82,19 @@ validate_not_placeholder() {
   fi
 }
 
+validate_not_sample_key() {
+  local name="$1"
+  local value="$2"
+  local lowered
+  lowered="$(printf '%s' "${value}" | tr '[:upper:]' '[:lower:]')"
+
+  case "${lowered}" in
+    sk-your-*|sk-replace-*|your-zep-key|replace_with_zep_key|replace_with_openai_or_compatible_key)
+      fail "${name} is using a sample key value: ${value}"
+      ;;
+  esac
+}
+
 validate_email() {
   local name="$1"
   local value="$2"
@@ -101,6 +114,8 @@ main() {
   zep_api_key="$(read_var "ZEP_API_KEY")"
   validate_not_placeholder "LLM_API_KEY" "${llm_api_key}"
   validate_not_placeholder "ZEP_API_KEY" "${zep_api_key}"
+  validate_not_sample_key "LLM_API_KEY" "${llm_api_key}"
+  validate_not_sample_key "ZEP_API_KEY" "${zep_api_key}"
 
   if ! command -v docker >/dev/null 2>&1; then
     fail "docker is not installed"

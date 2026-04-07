@@ -113,6 +113,7 @@ Edit `.env` and set:
 - `PORTAL_DOMAIN=portal.your-domain`
 - `ACME_EMAIL=you@example.com`
 - use real values only (no placeholders like `replace_with_*` / `example.com`)
+- do **not** use sample key patterns like `sk-your-*`, `sk-replace-*`, or `your-zep-key`
 - `ACME_EMAIL` must be a valid email format (`name@domain.tld`)
 - optional but recommended for large ontology/doc uploads:
   - `API_MAX_UPLOAD_SIZE=200MB`
@@ -234,8 +235,8 @@ The validator catches:
 If git commands fail with "not a git repository" or `scripts/` is empty, the deploy directory is corrupted. Use the bootstrap script to nuke and rebuild:
 
 ```bash
-export LLM_API_KEY="sk-your-openai-key"
-export ZEP_API_KEY="your-zep-key"
+export LLM_API_KEY="sk-REPLACE_WITH_REAL_KEY"
+export ZEP_API_KEY="REPLACE_WITH_REAL_ZEP_KEY"
 export ACME_EMAIL="your-email@example.com"
 bash <(curl -fsSL https://raw.githubusercontent.com/cashemerson/Mirofish/cursor/mirofish-deployment-recovery-2ae4/deploy/always-on/scripts/bootstrap-server.sh)
 ```
