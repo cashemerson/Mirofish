@@ -190,6 +190,14 @@ For an ordered 404 triage workflow (portal target + proxy path + image/version d
   --portal https://portal.your-domain
 ```
 
+Before starting/updating the stack, verify the backend image tag is pullable:
+
+```bash
+docker pull ghcr.io/cashemerson/mirofish:latest
+```
+
+If this fails with `manifest unknown`, publish that tag (or switch compose to a valid existing tag) before retrying deployment.
+
 If the app UI shows `Request failed with status code 404` during ontology generation, make sure app env includes:
 
 ```env
@@ -202,6 +210,12 @@ API base URL resolution used by portal pages:
 - `?api=https://your-domain` query parameter (highest priority)
 - saved browser config key `mirofish_portal_config_v1.apiUrl` (if present)
 - auto-derive from hostname (`portal.<domain>` -> `https://<domain>`)
+
+## Command context gotchas
+
+- Run deployment commands (`docker`, `./scripts/*.sh`) in **bash**.
+- Run `localStorage.removeItem('mirofish_portal_config_v1')` in the **browser DevTools Console** on the portal page (not in bash).
+- `-bash: syntax error near unexpected token ')'` usually means accidental prose/extra characters were pasted into shell; re-run only raw command lines.
 
 If your deployment has drifted due to copy/paste issues, run one-command repair:
 

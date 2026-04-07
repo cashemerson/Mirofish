@@ -5,12 +5,36 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOY_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${DEPLOY_DIR}"
 
+require_file() {
+  local path="$1"
+  [ -f "${path}" ] || {
+    echo "FATAL: Missing required file: ${path}"
+    echo "This deploy directory looks incomplete/corrupted."
+    echo "Recover using: ${DEPLOY_DIR}/scripts/bootstrap-server.sh (or re-clone /root/mirofish-deploy)."
+    exit 1
+  }
+}
+
+echo "[0/8] Verifying deploy directory integrity..."
+require_file "docker-compose.yml"
+require_file "docker-compose.tls.yml"
+require_file "Caddyfile.template"
+require_file "scripts/validate-deploy.sh"
+require_file "scripts/render-caddyfile.sh"
+require_file "scripts/bootstrap-server.sh"
+require_file "scripts/repair-deploy.sh"
+require_file "scripts/diagnose-network-error.sh"
+require_file "scripts/triage-ontology-404.sh"
+require_file "scripts/configure-llm-provider.sh"
+echo "  OK"
+echo ""
+
 echo "========================================"
 echo "  MiroFish Deployment — cesimulation.it.com"
 echo "========================================"
 echo ""
 
-echo "[1/7] Validating .env..."
+echo "[1/8] Validating .env..."
 if [ ! -f .env ]; then
   echo "FATAL: .env not found. Run: cp .env.example .env && vi .env"
   exit 1
@@ -32,12 +56,12 @@ echo "  ZEP_API_KEY: set (${#ZEP_KEY} chars)"
 echo "  OK"
 echo ""
 
-echo "[2/7] Creating directories..."
+echo "[2/8] Creating directories..."
 mkdir -p uploads portal
 echo "  OK"
 echo ""
 
-echo "[3/7] Rendering Caddyfile..."
+echo "[3/8] Rendering Caddyfile..."
 if [ -f scripts/render-caddyfile.sh ]; then
   bash scripts/render-caddyfile.sh
 else
@@ -83,20 +107,52 @@ CEOF
 fi
 echo ""
 
-echo "[4/7] Validating compose config..."
+echo "[4/8] Validating compose config..."
 docker compose -f docker-compose.yml -f docker-compose.tls.yml config > /dev/null
 echo "  OK"
 echo ""
 
-echo "[5/7] Pulling images..."
+echo "[5/8] Verifying mirofish image availability..."
+MIROFISH_IMAGE="$(
+  docker compose -f docker-compose.yml -f docker-compose.tls.yml config | awk '
+    $1=="mirofish:" { in_mirofish=1; next }
+    in_mirofish && $1=="image:" { print $2; exit }
+    in_mirofish && /^[^[:space:]]/ { in_mirofish=0 }
+  '
+)"
+if [ -z "${MIROFISH_IMAGE}" ]; then
+  echo "FATAL: Could not resolve mirofish image from compose config."
+  exit 1
+fi
+PULL_LOG="$(mktemp)"
+if ! docker pull "${MIROFISH_IMAGE}" >"${PULL_LOG}" 2>&1; then
+  echo "FATAL: Unable to pull ${MIROFISH_IMAGE}."
+  if grep -qi "manifest unknown" "${PULL_LOG}"; then
+    echo "Cause: image tag is unavailable (manifest unknown)."
+    echo "Fix: publish this tag (e.g., latest) or switch docker-compose.yml to a valid pullable tag."
+  elif grep -qiE "denied|unauthorized|authentication required|forbidden" "${PULL_LOG}"; then
+    echo "Cause: image is inaccessible with current registry credentials/package permissions."
+    echo "Fix: authenticate to GHCR and confirm package access for this server/user."
+  fi
+  echo "---- docker pull output ----"
+  cat "${PULL_LOG}"
+  echo "----------------------------"
+  rm -f "${PULL_LOG}"
+  exit 1
+fi
+rm -f "${PULL_LOG}"
+echo "  OK: ${MIROFISH_IMAGE} is pullable"
+echo ""
+
+echo "[6/8] Pulling images..."
 docker compose -f docker-compose.yml -f docker-compose.tls.yml pull
 echo ""
 
-echo "[6/7] Starting stack..."
+echo "[7/8] Starting stack..."
 docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d --force-recreate --remove-orphans
 echo ""
 
-echo "[7/7] Waiting for health (up to 3 min)..."
+echo "[8/8] Waiting for health (up to 3 min)..."
 for i in $(seq 1 18); do
   sleep 10
   MIROFISH_HEALTH="$(docker inspect --format='{{.State.Health.Status}}' mirofish 2>/dev/null || echo 'starting')"
