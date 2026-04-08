@@ -39,16 +39,54 @@ if [ ! -f .env ]; then
   echo "FATAL: .env not found. Run: cp .env.example .env && vi .env"
   exit 1
 fi
+
+set_env_var() {
+  local key="$1"
+  local value="$2"
+  local tmp_file
+  tmp_file="$(mktemp)"
+  awk -v key="${key}" -v value="${value}" '
+    BEGIN { replaced = 0 }
+    $0 ~ "^" key "=" {
+      print key "=" value
+      replaced = 1
+      next
+    }
+    { print }
+    END {
+      if (!replaced) {
+        print key "=" value
+      }
+    }
+  ' .env > "${tmp_file}"
+  mv "${tmp_file}" .env
+}
+
+# Allow operators to pass keys via environment without manually editing .env first.
+if [ -z "${LLM_API_KEY:-}" ] && [ -n "${OPENAI_API_KEY:-}" ]; then
+  LLM_API_KEY="${OPENAI_API_KEY}"
+fi
+if [ -n "${LLM_API_KEY:-}" ]; then
+  set_env_var "LLM_API_KEY" "${LLM_API_KEY}"
+  echo "  Synced LLM_API_KEY from environment into .env"
+fi
+if [ -n "${ZEP_API_KEY:-}" ]; then
+  set_env_var "ZEP_API_KEY" "${ZEP_API_KEY}"
+  echo "  Synced ZEP_API_KEY from environment into .env"
+fi
+
 LLM_KEY="$(grep '^LLM_API_KEY=' .env | cut -d= -f2-)"
 ZEP_KEY="$(grep '^ZEP_API_KEY=' .env | cut -d= -f2-)"
 LLM_KEY_LOWER="$(printf '%s' "${LLM_KEY}" | tr '[:upper:]' '[:lower:]')"
 ZEP_KEY_LOWER="$(printf '%s' "${ZEP_KEY}" | tr '[:upper:]' '[:lower:]')"
 if [ -z "${LLM_KEY}" ] || [ "${LLM_KEY}" = "replace_with_openai_or_compatible_key" ] || [[ "${LLM_KEY_LOWER}" == sk-your-* ]] || [[ "${LLM_KEY_LOWER}" == sk-replace-* ]] || [[ "${LLM_KEY_LOWER}" == "sk-proj-" ]]; then
   echo "FATAL: LLM_API_KEY missing or still using a sample value in .env"
+  echo "Set it in .env or export LLM_API_KEY (or OPENAI_API_KEY) before running go.sh."
   exit 1
 fi
 if [ -z "${ZEP_KEY}" ] || [ "${ZEP_KEY}" = "replace_with_zep_key" ] || [ "${ZEP_KEY_LOWER}" = "your-zep-key" ]; then
   echo "FATAL: ZEP_API_KEY missing or still using a sample value in .env"
+  echo "Set it in .env or export ZEP_API_KEY before running go.sh."
   exit 1
 fi
 echo "  LLM_API_KEY: set (${#LLM_KEY} chars)"

@@ -99,8 +99,8 @@ cp .env.example .env
 Then edit `.env` and set these required values:
 
 ```
-LLM_API_KEY=sk-your-openai-key-here
-ZEP_API_KEY=your-zep-key-here
+LLM_API_KEY=sk-real-openai-or-compatible-key
+ZEP_API_KEY=real-zep-key
 MIROFISH_DOMAIN=app.cesimulation.it.com,cesimulation.it.com
 PORTAL_DOMAIN=portal.cesimulation.it.com
 ACME_EMAIL=your-email@example.com
@@ -187,8 +187,8 @@ Portal pages (`index.html`, `simulator.html`) resolve API base in this order:
 If you prefer a single command that does steps 1-7 automatically, set your API keys as environment variables and run the bootstrap script:
 
 ```
-export LLM_API_KEY="sk-your-openai-key"
-export ZEP_API_KEY="your-zep-key"
+export LLM_API_KEY="sk-real-openai-key"
+export ZEP_API_KEY="real-zep-key"
 export ACME_EMAIL="your-email@example.com"
 curl -fsSL https://raw.githubusercontent.com/cashemerson/Mirofish/cursor/mirofish-deployment-recovery-2ae4/deploy/always-on/scripts/bootstrap-server.sh | bash
 ```
@@ -197,7 +197,7 @@ Or after cloning:
 
 ```
 cd /root/mirofish-deploy/deploy/always-on
-LLM_API_KEY="sk-your-key" ZEP_API_KEY="your-zep-key" ACME_EMAIL="you@example.com" bash scripts/bootstrap-server.sh
+LLM_API_KEY="sk-real-openai-key" ZEP_API_KEY="real-zep-key" ACME_EMAIL="you@example.com" bash scripts/bootstrap-server.sh
 ```
 
 ---
