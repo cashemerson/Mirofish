@@ -2,6 +2,16 @@
 
 AI-powered ontology generation and simulation platform.
 
+## Poseidon OS v1 (Multi-Agent)
+
+Poseidon OS v1 is now scaffolded as a stage-gated multi-agent control layer on top of the existing Mirofish API pipeline.
+
+Use:
+
+- `/home/runner/work/Mirofish/Mirofish/deploy/always-on/scripts/poseidon-os.sh` for run orchestration, autonomy gating, feedback, dashboarding, and evaluation
+- `/home/runner/work/Mirofish/Mirofish/deploy/always-on/scripts/release-gate.sh` for preflight + smoke + rollback-readiness checks
+- `/home/runner/work/Mirofish/Mirofish/deploy/always-on/POSEIDON_OS.md` for copy/paste operating steps
+
 ## Deployment Recovery
 
 This branch (`cursor/mirofish-deployment-recovery-2ae4`) contains a complete, tested deployment stack for MiroFish. It fixes the broken state where `/root/mirofish-deploy` was not a git repo and `scripts/` was empty.

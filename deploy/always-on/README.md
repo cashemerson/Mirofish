@@ -12,6 +12,9 @@ This folder contains a hardened, repeatable deployment for running MiroFish cont
 - `scripts/repair-deploy.sh`: one-command recovery for drifted deployments
 - `scripts/diagnose-network-error.sh`: targeted checks for frontend "Network Error" paths
 - `scripts/bootstrap-server.sh`: full from-scratch server bootstrap (nuke + reclone + configure + start)
+- `scripts/poseidon-os.sh`: Poseidon OS multi-agent stage-gated orchestration layer
+- `scripts/release-gate.sh`: release gate for preflight, smoke checks, and rollback readiness
+- `POSEIDON_OS.md`: copy/paste guide for Poseidon OS v1 operations
 - bilingual portal UI (English/Chinese) with in-page language switch
 
 ## Prerequisites
@@ -155,6 +158,29 @@ The validator catches:
 - missing required env keys
 - Caddyfile template rendering issues
 - broken Compose syntax
+
+---
+
+## Poseidon OS v1 quick start
+
+```bash
+cd /home/runner/work/Mirofish/Mirofish/deploy/always-on
+bash scripts/poseidon-os.sh init-run --name poseidon-v1
+```
+
+Then follow:
+
+```bash
+cd /home/runner/work/Mirofish/Mirofish/deploy/always-on
+cat POSEIDON_OS.md
+```
+
+Before production releases:
+
+```bash
+cd /home/runner/work/Mirofish/Mirofish/deploy/always-on
+bash scripts/release-gate.sh --app https://your-domain --portal https://portal.your-domain --api https://your-domain/api/simulation/history?limit=1
+```
 
 ---
 

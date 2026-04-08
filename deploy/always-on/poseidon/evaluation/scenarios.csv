@@ -1,0 +1,4 @@
+scenario_id,description,required_stage,pass_quality_threshold,pass_success_rate_threshold,min_kpi_delta
+S1,Small single-document ontology to report run,REPORT_GENERATED,0.75,0.90,0.00
+S2,Large upload with retries and fallback base URL,REPORT_GENERATED,0.78,0.90,0.00
+S3,High-risk run requiring manual approval path,REPORT_GENERATED,0.80,0.92,0.00
