@@ -82,7 +82,7 @@ bash scripts/poseidon-os.sh evaluate --run-id <RUN_ID>
 
 - stage-gated transitions to prevent invalid order
 - timeout controls (`--timeout`)
-- retries + progressive backoff (`--retries`, `--retry-backoff`) where `--retries` means additional attempts after the first call
+- retries + progressive backoff (`--retries`, `--retry-backoff`) where `--retries=N` means total attempts are `N+1` (first call + N retries)
 - API base fallback list (`--fallback-api-bases` on init)
 - circuit breaker based on consecutive failures
 

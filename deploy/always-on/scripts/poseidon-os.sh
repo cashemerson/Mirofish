@@ -30,6 +30,9 @@ Examples:
   ./scripts/poseidon-os.sh init-run --name nba-props-v1
   ./scripts/poseidon-os.sh set-phase --run-id <RUN_ID> --phase assisted
   ./scripts/poseidon-os.sh call --run-id <RUN_ID> --endpoint /api/graph/ontology/generate --form 'simulation_requirement=Find +EV NBA props' --form 'files=@/root/input.pdf'
+
+Notes:
+  call --retries N means N retries after the first request (total attempts = N + 1)
 USAGE
 }
 
@@ -188,7 +191,10 @@ init_run() {
   [ -n "${run_name}" ] || fail "--name cannot be empty"
   validate_phase "${phase}"
 
-  RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-${run_name//[^a-zA-Z0-9._-]/-}-${BASHPID}-$(date -u +%s%N)"
+  local run_ts run_nonce
+  run_ts="$(date -u +%Y%m%dT%H%M%SZ)"
+  run_nonce="$(date -u +%s%N)"
+  RUN_ID="${run_ts}-${run_name//[^a-zA-Z0-9._-]/-}-${BASHPID}-${run_nonce}"
   RUN_DIR="${RUNS_DIR}/${RUN_ID}"
   mkdir -p "${RUN_DIR}"
   RUN_ENV="${RUN_DIR}/run.env"
