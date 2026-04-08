@@ -188,7 +188,7 @@ init_run() {
   [ -n "${run_name}" ] || fail "--name cannot be empty"
   validate_phase "${phase}"
 
-  RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-${run_name//[^a-zA-Z0-9._-]/-}"
+  RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-${run_name//[^a-zA-Z0-9._-]/-}-$$-$RANDOM"
   RUN_DIR="${RUNS_DIR}/${RUN_ID}"
   mkdir -p "${RUN_DIR}"
   RUN_ENV="${RUN_DIR}/run.env"
@@ -498,6 +498,7 @@ record_feedback() {
   timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   notes="${notes//$'\t'/ }"
   notes="${notes//$'\n'/ }"
+  notes="${notes//$'\r'/ }"
   printf '%s\t%s\t%s\t%s\t%s\n' \
     "${timestamp}" \
     "${outcome}" \
@@ -524,7 +525,7 @@ generate_dashboard() {
   local dashboard_path="${RUN_DIR}/dashboard.html"
   {
     echo '<!doctype html><html><head><meta charset="utf-8"><title>Poseidon OS Dashboard</title>'
-    echo '<style>body{font-family:Arial,Helvetica,sans-serif;margin:20px}table{border-collapse:collapse;width:100%;margin-top:12px}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f4f4f4}.ok{color:#0a7d29}.warn{color:#b35c00}</style></head><body>'
+    echo '<style>body{font-family:Arial,Helvetica,sans-serif;margin:20px}table{border-collapse:collapse;width:100%;margin-top:12px}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f4f4f4}</style></head><body>'
     echo "<h1>Poseidon OS Run Dashboard</h1>"
     echo "<p><strong>Run ID:</strong> ${RUN_ID}<br><strong>Target use case:</strong> ${TARGET_USE_CASE}<br><strong>Phase:</strong> ${AUTONOMY_PHASE}<br><strong>Current stage:</strong> ${CURRENT_STAGE}</p>"
     echo '<h2>Execution metrics</h2><pre>'
