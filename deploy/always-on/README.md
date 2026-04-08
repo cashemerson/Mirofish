@@ -269,7 +269,7 @@ The validator catches:
 If git commands fail with "not a git repository" or `scripts/` is empty, the deploy directory is corrupted. Use the bootstrap script to nuke and rebuild:
 
 ```bash
-export LLM_API_KEY="sk-REPLACE_WITH_REAL_KEY"
+export LLM_API_KEY="sk-REPLACE_WITH_REAL_KEY" # or use OPENAI_API_KEY
 export ZEP_API_KEY="REPLACE_WITH_REAL_ZEP_KEY"
 export ACME_EMAIL="your-email@example.com"
 bash <(curl -fsSL https://raw.githubusercontent.com/cashemerson/Mirofish/cursor/mirofish-deployment-recovery-2ae4/deploy/always-on/scripts/bootstrap-server.sh)

@@ -12,9 +12,14 @@ PORTAL_DOMAIN="${PORTAL_DOMAIN:-portal.cesimulation.it.com}"
 ACME_EMAIL="${ACME_EMAIL:-you@example.com}"
 
 LLM_API_KEY="${LLM_API_KEY:-}"
+OPENAI_API_KEY="${OPENAI_API_KEY:-}"
 ZEP_API_KEY="${ZEP_API_KEY:-}"
 LLM_BASE_URL="${LLM_BASE_URL:-https://api.openai.com/v1}"
 LLM_MODEL_NAME="${LLM_MODEL_NAME:-gpt-4o-mini}"
+
+if [ -z "${LLM_API_KEY}" ] && [ -n "${OPENAI_API_KEY}" ]; then
+  LLM_API_KEY="${OPENAI_API_KEY}"
+fi
 
 fail() {
   echo "FATAL: $*" >&2

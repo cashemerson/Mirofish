@@ -187,7 +187,7 @@ Portal pages (`index.html`, `simulator.html`) resolve API base in this order:
 If you prefer a single command that does steps 1-7 automatically, set your API keys as environment variables and run the bootstrap script:
 
 ```
-export LLM_API_KEY="sk-real-openai-key"
+export LLM_API_KEY="sk-real-openai-key" # or use OPENAI_API_KEY
 export ZEP_API_KEY="real-zep-key"
 export ACME_EMAIL="your-email@example.com"
 curl -fsSL https://raw.githubusercontent.com/cashemerson/Mirofish/cursor/mirofish-deployment-recovery-2ae4/deploy/always-on/scripts/bootstrap-server.sh | bash
@@ -198,6 +198,7 @@ Or after cloning:
 ```
 cd /root/mirofish-deploy/deploy/always-on
 LLM_API_KEY="sk-real-openai-key" ZEP_API_KEY="real-zep-key" ACME_EMAIL="you@example.com" bash scripts/bootstrap-server.sh
+# equivalent alias: OPENAI_API_KEY="sk-real-openai-key"
 ```
 
 ---
