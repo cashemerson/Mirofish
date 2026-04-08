@@ -210,9 +210,9 @@ init_run() {
 timestamp,endpoint,status_code,latency_seconds,risk,confidence,retries,api_base,result
 CSV
 
-  cat > "${RUN_DIR}/feedback.csv" <<'CSV'
-timestamp,outcome,quality_score,business_kpi_delta,notes
-CSV
+  cat > "${RUN_DIR}/feedback.tsv" <<'TSV'
+timestamp	outcome	quality_score	business_kpi_delta	notes
+TSV
 
   cat > "${RUN_DIR}/handoff-contracts.md" <<'DOC'
 # Poseidon OS v1 Agent Handoff Contracts
@@ -409,7 +409,7 @@ call_stage_gated() {
       fi
 
       if [ "${attempt}" -lt "${retries}" ]; then
-        sleep "$((retry_backoff * attempt + retry_backoff))"
+        sleep "$((retry_backoff * (attempt + 1)))"
       fi
     done
 
@@ -496,13 +496,15 @@ record_feedback() {
 
   local timestamp
   timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  printf '%s,%s,%s,%s,%s\n' \
+  notes="${notes//$'\t'/ }"
+  notes="${notes//$'\n'/ }"
+  printf '%s\t%s\t%s\t%s\t%s\n' \
     "${timestamp}" \
-    "$(csv_escape "${outcome}")" \
+    "${outcome}" \
     "${quality_score:-}" \
     "${kpi_delta:-}" \
-    "$(csv_escape "${notes}")" \
-    >> "${RUN_DIR}/feedback.csv"
+    "${notes}" \
+    >> "${RUN_DIR}/feedback.tsv"
 
   echo "Feedback recorded for ${RUN_ID}"
 }
@@ -529,7 +531,7 @@ generate_dashboard() {
     cat "${RUN_DIR}/metrics.csv"
     echo '</pre>'
     echo '<h2>Feedback loop</h2><pre>'
-    cat "${RUN_DIR}/feedback.csv"
+    cat "${RUN_DIR}/feedback.tsv"
     echo '</pre>'
     echo '</body></html>'
   } > "${dashboard_path}"
@@ -555,8 +557,8 @@ generate_scorecard() {
   total_calls="$(awk -F',' 'NR>1 {c++} END{print c+0}' "${RUN_DIR}/metrics.csv")"
   success_calls="$(awk -F',' 'NR>1 && $3 ~ /^2[0-9][0-9]$/ {c++} END{print c+0}' "${RUN_DIR}/metrics.csv")"
   avg_latency="$(awk -F',' 'NR>1 {sum+=$4;c++} END{if(c==0){print "0.00"} else {printf "%.2f", sum/c}}' "${RUN_DIR}/metrics.csv")"
-  avg_quality="$(awk -F',' 'NR>1 && $3 != "" {gsub(/"/,"",$3);sum+=$3;c++} END{if(c==0){print "0.00"} else {printf "%.2f", sum/c}}' "${RUN_DIR}/feedback.csv")"
-  avg_kpi="$(awk -F',' 'NR>1 && $4 != "" {sum+=$4;c++} END{if(c==0){print "0.00"} else {printf "%.2f", sum/c}}' "${RUN_DIR}/feedback.csv")"
+  avg_quality="$(awk -F'\t' 'NR>1 && $3 != "" {sum+=$3;c++} END{if(c==0){print "0.00"} else {printf "%.2f", sum/c}}' "${RUN_DIR}/feedback.tsv")"
+  avg_kpi="$(awk -F'\t' 'NR>1 && $4 != "" {sum+=$4;c++} END{if(c==0){print "0.00"} else {printf "%.2f", sum/c}}' "${RUN_DIR}/feedback.tsv")"
 
   {
     echo "# Poseidon OS Evaluation Scorecard"
