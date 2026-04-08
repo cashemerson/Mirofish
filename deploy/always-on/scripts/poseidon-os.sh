@@ -348,7 +348,7 @@ call_stage_gated() {
 
   local bases_csv="${api_base}"
   if [ -n "${FALLBACK_API_BASE_URLS}" ]; then
-    bases_csv+=" ,${FALLBACK_API_BASE_URLS}"
+    bases_csv+=",${FALLBACK_API_BASE_URLS}"
   fi
   local IFS=','
   read -r -a base_candidates <<< "${bases_csv// /}"
@@ -409,7 +409,7 @@ call_stage_gated() {
       fi
 
       if [ "${attempt}" -lt "${retries}" ]; then
-        sleep "$((retry_backoff * (attempt + 1)))"
+        sleep "$((retry_backoff * attempt + retry_backoff))"
       fi
     done
 
