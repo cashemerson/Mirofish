@@ -188,7 +188,7 @@ init_run() {
   [ -n "${run_name}" ] || fail "--name cannot be empty"
   validate_phase "${phase}"
 
-  RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-${run_name//[^a-zA-Z0-9._-]/-}-$$-$RANDOM"
+  RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-${run_name//[^a-zA-Z0-9._-]/-}-${BASHPID}-$(date -u +%s%N)"
   RUN_DIR="${RUNS_DIR}/${RUN_ID}"
   mkdir -p "${RUN_DIR}"
   RUN_ENV="${RUN_DIR}/run.env"
@@ -496,9 +496,7 @@ record_feedback() {
 
   local timestamp
   timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  notes="${notes//$'\t'/ }"
-  notes="${notes//$'\n'/ }"
-  notes="${notes//$'\r'/ }"
+  notes="$(printf '%s' "${notes}" | tr '\t\r\n' '   ')"
   printf '%s\t%s\t%s\t%s\t%s\n' \
     "${timestamp}" \
     "${outcome}" \
